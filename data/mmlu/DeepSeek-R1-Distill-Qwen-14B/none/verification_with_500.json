@@ -92,10 +92,6 @@
     "verified_answer": "B"
   },
   {
-    "question_id": 26,
-    "verified_answer": "A"
-  },
-  {
     "question_id": 27,
     "verified_answer": "C"
   },
@@ -125,7 +121,7 @@
   },
   {
     "question_id": 34,
-    "verified_answer": "B"
+    "verified_answer": "A"
   },
   {
     "question_id": 35,
@@ -137,7 +133,7 @@
   },
   {
     "question_id": 37,
-    "verified_answer": "A"
+    "verified_answer": "C"
   },
   {
     "question_id": 38,
@@ -177,7 +173,7 @@
   },
   {
     "question_id": 47,
-    "verified_answer": "D"
+    "verified_answer": "C"
   },
   {
     "question_id": 48,
@@ -193,11 +189,11 @@
   },
   {
     "question_id": 51,
-    "verified_answer": "B"
+    "verified_answer": "A"
   },
   {
     "question_id": 52,
-    "verified_answer": "D"
+    "verified_answer": "B"
   },
   {
     "question_id": 54,
@@ -216,16 +212,12 @@
     "verified_answer": "B"
   },
   {
-    "question_id": 58,
-    "verified_answer": "A"
-  },
-  {
     "question_id": 59,
     "verified_answer": "B"
   },
   {
     "question_id": 60,
-    "verified_answer": "B"
+    "verified_answer": "A"
   },
   {
     "question_id": 61,
@@ -233,7 +225,7 @@
   },
   {
     "question_id": 62,
-    "verified_answer": "D"
+    "verified_answer": "B"
   },
   {
     "question_id": 63,
@@ -289,10 +281,6 @@
   },
   {
     "question_id": 76,
-    "verified_answer": "D"
-  },
-  {
-    "question_id": 77,
     "verified_answer": "D"
   },
   {
@@ -357,7 +345,7 @@
   },
   {
     "question_id": 93,
-    "verified_answer": "A"
+    "verified_answer": "B"
   },
   {
     "question_id": 94,
@@ -410,10 +398,6 @@
   {
     "question_id": 106,
     "verified_answer": "A"
-  },
-  {
-    "question_id": 107,
-    "verified_answer": "C"
   },
   {
     "question_id": 108,
@@ -492,7 +476,7 @@
     "verified_answer": "B"
   },
   {
-    "question_id": 128,
+    "question_id": 127,
     "verified_answer": "D"
   },
   {
@@ -529,7 +513,7 @@
   },
   {
     "question_id": 137,
-    "verified_answer": "C"
+    "verified_answer": "A"
   },
   {
     "question_id": 138,
@@ -580,6 +564,10 @@
     "verified_answer": "C"
   },
   {
+    "question_id": 151,
+    "verified_answer": "C"
+  },
+  {
     "question_id": 152,
     "verified_answer": "C"
   },
@@ -613,7 +601,7 @@
   },
   {
     "question_id": 160,
-    "verified_answer": "C"
+    "verified_answer": "A"
   },
   {
     "question_id": 161,
@@ -661,7 +649,7 @@
   },
   {
     "question_id": 172,
-    "verified_answer": "B"
+    "verified_answer": "D"
   },
   {
     "question_id": 173,
@@ -736,6 +724,10 @@
     "verified_answer": "B"
   },
   {
+    "question_id": 192,
+    "verified_answer": "B"
+  },
+  {
     "question_id": 193,
     "verified_answer": "C"
   },
@@ -753,7 +745,7 @@
   },
   {
     "question_id": 197,
-    "verified_answer": "D"
+    "verified_answer": "A"
   },
   {
     "question_id": 198,
@@ -813,7 +805,7 @@
   },
   {
     "question_id": 212,
-    "verified_answer": "A"
+    "verified_answer": "C"
   },
   {
     "question_id": 213,
@@ -825,7 +817,7 @@
   },
   {
     "question_id": 215,
-    "verified_answer": "D"
+    "verified_answer": "C"
   },
   {
     "question_id": 216,
@@ -897,7 +889,7 @@
   },
   {
     "question_id": 233,
-    "verified_answer": "C"
+    "verified_answer": "B"
   },
   {
     "question_id": 234,
@@ -909,7 +901,7 @@
   },
   {
     "question_id": 236,
-    "verified_answer": "D"
+    "verified_answer": "C"
   },
   {
     "question_id": 237,
@@ -965,7 +957,7 @@
   },
   {
     "question_id": 250,
-    "verified_answer": "C"
+    "verified_answer": "A"
   },
   {
     "question_id": 251,
@@ -1084,10 +1076,6 @@
     "verified_answer": "A"
   },
   {
-    "question_id": 280,
-    "verified_answer": "B"
-  },
-  {
     "question_id": 281,
     "verified_answer": "A"
   },
@@ -1142,10 +1130,6 @@
   {
     "question_id": 294,
     "verified_answer": "B"
-  },
-  {
-    "question_id": 295,
-    "verified_answer": "A"
   },
   {
     "question_id": 296,
@@ -1217,7 +1201,7 @@
   },
   {
     "question_id": 314,
-    "verified_answer": "C"
+    "verified_answer": "D"
   },
   {
     "question_id": 315,
@@ -1349,7 +1333,7 @@
   },
   {
     "question_id": 348,
-    "verified_answer": "A"
+    "verified_answer": "C"
   },
   {
     "question_id": 349,
@@ -1397,7 +1381,7 @@
   },
   {
     "question_id": 360,
-    "verified_answer": "B"
+    "verified_answer": "D"
   },
   {
     "question_id": 361,
@@ -1410,10 +1394,6 @@
   {
     "question_id": 363,
     "verified_answer": "C"
-  },
-  {
-    "question_id": 364,
-    "verified_answer": "B"
   },
   {
     "question_id": 365,
@@ -1509,11 +1489,7 @@
   },
   {
     "question_id": 389,
-    "verified_answer": "D"
-  },
-  {
-    "question_id": 390,
-    "verified_answer": "A"
+    "verified_answer": "B"
   },
   {
     "question_id": 391,
@@ -1541,11 +1517,11 @@
   },
   {
     "question_id": 397,
-    "verified_answer": "D"
+    "verified_answer": "C"
   },
   {
     "question_id": 398,
-    "verified_answer": "D"
+    "verified_answer": "B"
   },
   {
     "question_id": 399,
@@ -1597,7 +1573,7 @@
   },
   {
     "question_id": 411,
-    "verified_answer": "C"
+    "verified_answer": "D"
   },
   {
     "question_id": 412,
@@ -1613,7 +1589,7 @@
   },
   {
     "question_id": 415,
-    "verified_answer": "C"
+    "verified_answer": "A"
   },
   {
     "question_id": 416,
@@ -1629,7 +1605,7 @@
   },
   {
     "question_id": 419,
-    "verified_answer": "D"
+    "verified_answer": "C"
   },
   {
     "question_id": 420,
@@ -1645,7 +1621,7 @@
   },
   {
     "question_id": 423,
-    "verified_answer": "B"
+    "verified_answer": "C"
   },
   {
     "question_id": 424,
@@ -1653,7 +1629,7 @@
   },
   {
     "question_id": 425,
-    "verified_answer": "A"
+    "verified_answer": "B"
   },
   {
     "question_id": 426,
@@ -1706,6 +1682,10 @@
   {
     "question_id": 438,
     "verified_answer": "A"
+  },
+  {
+    "question_id": 439,
+    "verified_answer": "C"
   },
   {
     "question_id": 440,
@@ -1792,16 +1772,16 @@
     "verified_answer": "C"
   },
   {
-    "question_id": 461,
-    "verified_answer": "A"
-  },
-  {
     "question_id": 462,
     "verified_answer": "D"
   },
   {
     "question_id": 463,
     "verified_answer": "A"
+  },
+  {
+    "question_id": 464,
+    "verified_answer": "C"
   },
   {
     "question_id": 466,
@@ -1821,7 +1801,7 @@
   },
   {
     "question_id": 470,
-    "verified_answer": "D"
+    "verified_answer": "C"
   },
   {
     "question_id": 471,
@@ -1853,7 +1833,7 @@
   },
   {
     "question_id": 478,
-    "verified_answer": "C"
+    "verified_answer": "B"
   },
   {
     "question_id": 479,
