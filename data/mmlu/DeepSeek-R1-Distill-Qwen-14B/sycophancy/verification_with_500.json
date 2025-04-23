@@ -696,10 +696,6 @@
     "verified_answer": "A"
   },
   {
-    "question_id": 179,
-    "verified_answer": "C"
-  },
-  {
     "question_id": 180,
     "verified_answer": "B"
   },
@@ -1510,6 +1506,10 @@
   {
     "question_id": 390,
     "verified_answer": "A"
+  },
+  {
+    "question_id": 392,
+    "verified_answer": "B"
   },
   {
     "question_id": 393,
