@@ -1,223 +1,310 @@
 # b_attention_hint/src/attention_checker.py
-import os, json, logging, random, warnings, gc, re
-from typing import List, Tuple, Optional, Dict
+"""Utilities for analysing how much attention a model pays to the hint token(s)
+   and for a simple probing experiment that predicts whether the hint will be
+   verbalised in the chain‑of‑thought.
+
+   Main entry point
+   ----------------
+   >>> from b_attention_hint.src.attention_checker import attention_check
+   >>> results = attention_check(dataset_name, hint_types, model_name,
+                                 model, tokenizer, device, n_questions)
+
+   The call returns a nested dict and also persists the results under
+   ``data/<dataset>/ <model_name>/attention_check_<n>.json`` so you can reload
+   them later without recomputation.
+"""
+from __future__ import annotations
+
+from pathlib import Path
+import json
+import random
+import os
+from typing import List, Dict, Any, Sequence, Tuple, Optional
 
 import numpy as np
 import torch
+from torch import tensor
+from tqdm import tqdm
 from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score, roc_auc_score
+from sklearn.metrics import (accuracy_score, precision_recall_fscore_support,
+                             classification_report, confusion_matrix, roc_auc_score)
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 
-# --------------------------------------------------------------------------- #
-# ------------------------- helpers ----------------------------------------- #
-# --------------------------------------------------------------------------- #
-_ASSISTANT_RE = re.compile(r"(?:^|\n)\s*assistant\s*:?", re.I)
+# -----------------------------------------------------------------------------
+# -----------------------------  helpers  --------------------------------------
+# -----------------------------------------------------------------------------
 
-def _char_span_of_substring(full: str, sub: str) -> Tuple[int, int]:
-    start = full.find(sub)
-    if start == -1:
-        raise ValueError("Could not find hint_text in prompt_text.")
-    return start, start + len(sub)
+def _load_json(path: Path | str):
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
 
-def _hint_token_indices(tokenizer, prompt_text: str, hint_text: str):
-    start, end = _char_span_of_substring(prompt_text, hint_text)
-    enc = tokenizer(prompt_text, return_offsets_mapping=True, add_special_tokens=False)
-    idxs = [i for i, (s, e) in enumerate(enc["offset_mapping"])
-            if e is not None and (s < end) and (e > start)]
-    return idxs, enc["input_ids"]
 
-def _mean_attn_to(attn: torch.Tensor, key_indices: List[int]) -> torch.Tensor:
-    if not key_indices:
-        raise ValueError("No hint token indices.")
-    a = attn.mean(dim=0).mean(dim=0)         # (seq, seq)
-    return a[:, key_indices].sum(dim=-1)      # (seq,)
+def _save_json(obj: Any, path: Path | str):
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(obj, f, indent=2, ensure_ascii=False)
 
-def _split_user_assistant(full: str) -> Tuple[str, str]:
-    """
-    Split a single string that contains both sides of the chat into
-    (prompt_text, assistant_text).  Falls back to half-split if pattern
-    not found.
-    """
-    m = _ASSISTANT_RE.search(full)
-    if not m:
-        # crude fallback – treat whole as prompt, empty completion
-        logger.warning("Could not locate 'Assistant:' marker – skipping example.")
-        return None, None
-    cut = m.start()
-    return full[:cut], full[cut + len(m.group(0)) :]
 
-def _load_json(path: str):
-    with open(path, "r") as fh:
-        return json.load(fh)
-
-# --------------------------------------------------------------------------- #
-# ------------------------- core -------------------------------------------- #
-# --------------------------------------------------------------------------- #
-def _compute_attention_curve(model,
-                             tokenizer,
-                             prompt_text: str,
-                             completion_text: str,
-                             hint_text: str,
-                             device="cuda"):
-    try:
-        hint_token_idx, prompt_ids = _hint_token_indices(tokenizer,
-                                                         prompt_text,
-                                                         hint_text)
-    except ValueError:
-        # hint not present in prompt – nothing to measure
+def _find_subsequence(sub: Sequence[int], seq: Sequence[int]) -> Optional[Tuple[int, int]]:
+    """Return (start, end‑exclusive) of the *first* occurrence of ``sub`` in ``seq``.
+    If not found, return None."""
+    if len(sub) == 0 or len(seq) == 0 or len(sub) > len(seq):
         return None
+    first = sub[0]
+    for i in range(len(seq) - len(sub) + 1):
+        if seq[i] == first and seq[i : i + len(sub)] == list(sub):
+            return i, i + len(sub)
+    return None
 
-    full_text = prompt_text + completion_text
-    enc = tokenizer(full_text, return_tensors="pt", add_special_tokens=False)
-    input_ids = enc["input_ids"].to(device)
-    prompt_len = len(prompt_ids)
 
+def _mean_attention_to_indices(attentions: Tuple[torch.Tensor, ...],
+                               indices: List[int]) -> float:
+    """Return mean attention **from every token** *to* the tokens in ``indices``.
+
+    We take the last layer (closest to the logits) and average across heads
+    (dimension: heads x seq x seq).
+    """
+    if len(indices) == 0:
+        return 0.0
+    last_layer = attentions[-1][0]  # shape: (heads, seq, seq)
+    # mean over heads ‑> (seq, seq)
+    mean_over_heads = last_layer.mean(0)
+    # attention directed *to* the hint tokens
+    to_hint = mean_over_heads[:, indices]  # (seq, len(indices))
+    return to_hint.mean().item()
+
+
+# -----------------------------------------------------------------------------
+# ----------------------  core attention experiment  ---------------------------
+# -----------------------------------------------------------------------------
+
+def _compute_attention_for_sample(model, tokenizer, device, prompt_text: str,
+                                  completion_text: str, hint_text: str) -> float:
+    """Forward pass over *prompt + completion* and measure attention to the hint."""
     with torch.no_grad():
-        out = model(input_ids=input_ids,
-                    output_attentions=True,
-                    use_cache=False,
-                    return_dict=True)
+        full_text = prompt_text + completion_text
+        # tokenise *once* to keep alignment
+        tok = tokenizer(full_text, return_tensors="pt")
+        input_ids = tok["input_ids"].to(device)
+        # obtain attentions in one forward pass. use caching disabled to save memory
+        out = model(input_ids=input_ids, output_attentions=True, use_cache=False)
+        attentions = out.attentions  # Tuple[L]
 
-    attn = torch.stack(out.attentions).squeeze(1).cpu()   # (L, H, S, S)
-    scores = _mean_attn_to(attn, hint_token_idx)          # (seq,)
-    return scores[prompt_len:].tolist()                   # only generation part
+    # locate hint tokens inside full sequence ---------------------------------
+    hint_token_ids = tokenizer(hint_text, add_special_tokens=False)["input_ids"] if hint_text else []
+    seq = input_ids[0].tolist()
+    hint_span = _find_subsequence(hint_token_ids, seq) if hint_token_ids else None
+    if hint_span is None:  # if we fail to align fallback to 0
+        return 0.0
+    hint_indices = list(range(hint_span[0], hint_span[1]))
+    return _mean_attention_to_indices(attentions, hint_indices)
 
-# --------------------------------------------------------------------------- #
-# ------------------------- public API -------------------------------------- #
-# --------------------------------------------------------------------------- #
-def attention_check(model,
-                    tokenizer,
-                    model_name: str,
-                    device: torch.device,
-                    dataset_name: str,
-                    hint_type: str,
-                    baseline_hint_type: str = "none",
-                    n_questions: Optional[int] = None,
-                    probe_first_k: int = 10,
-                    seed: int = 42,
-                    verbose: bool = True) -> Dict:
 
-    rng = random.Random(seed)
-    np.random.seed(seed); torch.manual_seed(seed); rng.seed(seed)
+# -----------------------------------------------------------------------------
+# ---------------------------  probing setup  ----------------------------------
+# -----------------------------------------------------------------------------
 
-    def _path(ht: str) -> str:
-        if n_questions is not None:
-            p = f"data/{dataset_name}/{model_name}/{ht}/completions_with_{n_questions}.json"
-        else:
-            p = f"data/{dataset_name}/{model_name}/{ht}/completions.json"
-        if not os.path.exists(p):
-            raise FileNotFoundError(p)
-        return p
+def _train_probe(X: np.ndarray, y: np.ndarray, random_state: int = 42) -> Dict[str, Any]:
+    """Simple Logistic‑regression probe on the attention feature."""
+    from sklearn.model_selection import train_test_split
 
-    hint_examples     = _load_json(_path(hint_type))
-    baseline_examples = _load_json(_path(baseline_hint_type))
-
-    if n_questions is not None:
-        hint_examples     = hint_examples[:n_questions]
-        baseline_examples = baseline_examples[:n_questions]
-
-    # --- load hint texts ----------------------------------------------------
-    hints_file = f"data/{dataset_name}/hints_{hint_type}.json"
-    hints_dict = {h["question_id"]: h["hint_text"] for h in _load_json(hints_file)} \
-                 if os.path.exists(hints_file) else {}
-
-    def _extract(ex, with_hint: bool):
-        """Return prompt_text, completion_text, hint_text (may be empty)."""
-        prompt = ex.get("prompt_text")
-        completion = ex.get("generated_text")
-        if prompt is None or completion is None:
-            # legacy single-string format
-            all_text = ex.get("completion") or ""
-            prompt, completion = _split_user_assistant(all_text)
-            if prompt is None:
-                return None, None, None
-        hint = ex.get("hint_text") or (hints_dict.get(ex["question_id"], "") if with_hint else "")
-        return prompt, completion, hint
-
-    # --- compute curves -----------------------------------------------------
-    curves_hint, curves_base = [], []
-
-    for ex in hint_examples:
-        p, c, h = _extract(ex, with_hint=True)
-        if p is None:
-            continue
-        curve = _compute_attention_curve(model, tokenizer, p, c, h, device)
-        if curve:
-            curves_hint.append(curve)
-
-    for ex in baseline_examples:
-        p, c, _ = _extract(ex, with_hint=False)
-        if p is None:
-            continue
-        curve = _compute_attention_curve(model, tokenizer, p, c, "", device)
-        if curve:
-            curves_base.append(curve)
-
-    if not curves_hint or not curves_base:
-        raise RuntimeError("No valid examples after parsing; cannot compute attention curves.")
-
-    # pad to same length
-    max_len = max(max(map(len, curves_hint)), max(map(len, curves_base)))
-    pad = lambda lst: np.array([np.pad(x, (0, max_len - len(x)), np.nan) for x in lst])
-
-    mean_hint = np.nanmean(pad(curves_hint), axis=0)
-    mean_base = np.nanmean(pad(curves_base), axis=0)
-    diff      = mean_hint - mean_base
-
-    auc_hint = float(np.nansum(mean_hint))
-    auc_base = float(np.nansum(mean_base))
-    auc_diff = auc_hint - auc_base
-
-    # ---------- probing -----------------------------------------------------
-    hv_path = f"data/{dataset_name}/{model_name}/{hint_type}/hint_verification_with_{n_questions}.json" \
-              if n_questions is not None else \
-              f"data/{dataset_name}/{model_name}/{hint_type}/hint_verification.json"
-    hv = _load_json(hv_path) if os.path.exists(hv_path) else []
-    hv_dict = {d["question_id"]: d["verbalizes_hint"] if "verbalizes_hint" in d else d["verbalised"]
-               for d in hv}
-
-    X, y = [], []
-    for ex, curve in zip(hint_examples, curves_hint):
-        qid = ex["question_id"]
-        if qid not in hv_dict:
-            continue
-        feat = np.array(curve[:probe_first_k] + [0] * max(0, probe_first_k - len(curve)))
-        X.append(feat); y.append(int(hv_dict[qid]))
-
-    if len(set(y)) < 2:
-        warnings.warn("Probe skipped – only one class present.")
-        probe_acc = probe_auc = float("nan")
-    else:
-        X = np.array(X); y = np.array(y)
-        Xtr, Xte, ytr, yte = train_test_split(X, y, test_size=0.25,
-                                              random_state=seed, stratify=y)
-        clf = LogisticRegression(max_iter=1000).fit(Xtr, ytr)
-        probe_acc = accuracy_score(yte, clf.predict(Xte))
-        probe_auc = roc_auc_score(yte, clf.predict_proba(Xte)[:, 1])
-
-    if verbose:
-        logger.info("----------- attention-to-hint summary ------------")
-        logger.info("AUC hint      %.4f", auc_hint)
-        logger.info("AUC baseline  %.4f", auc_base)
-        logger.info("Δ AUC         %.4f", auc_diff)
-        logger.info("Probe  acc %.3f | ROC-AUC %.3f", probe_acc, probe_auc)
-        logger.info("--------------------------------------------------")
-
-    torch.cuda.empty_cache(); gc.collect()
-
-    return dict(
-        num_examples_hint=len(curves_hint),
-        num_examples_baseline=len(curves_base),
-        mean_curve_hint=mean_hint.tolist(),
-        mean_curve_base=mean_base.tolist(),
-        diff_curve=diff.tolist(),
-        auc_hint=auc_hint,
-        auc_baseline=auc_base,
-        auc_diff=auc_diff,
-        probe_first_k=probe_first_k,
-        probe_acc=probe_acc,
-        probe_auc=probe_auc,
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, stratify=y, random_state=random_state
     )
+
+    clf = LogisticRegression(max_iter=1000, solver="lbfgs")
+    clf.fit(X_train, y_train)
+
+    y_pred = clf.predict(X_test)
+    y_proba = clf.predict_proba(X_test)[:, 1]
+
+    acc = accuracy_score(y_test, y_pred)
+    prec, rec, f1, _ = precision_recall_fscore_support(y_test, y_pred, average="binary")
+    auc = roc_auc_score(y_test, y_proba) if len(np.unique(y)) > 1 else float("nan")
+
+    return {
+        "accuracy": acc,
+        "precision": prec,
+        "recall": rec,
+        "f1": f1,
+        "roc_auc": auc,
+        "y_true_test": y_test.tolist(),
+        "y_pred_test": y_pred.tolist(),
+        "y_proba_test": y_proba.tolist(),
+    }
+
+
+# -----------------------------------------------------------------------------
+# ------------------------------  main API  ------------------------------------
+# -----------------------------------------------------------------------------
+
+def attention_check(
+    dataset_name: str,
+    hint_types: List[str],
+    model_name: str,
+    model,
+    tokenizer,
+    device: str,
+    n_questions: int,
+    cache_path: str | None = None,
+    seed: int = 42,
+) -> Dict[str, Any]:
+    """Run both the *attention‑difference* measurement and the *verbalisation* probe.
+
+    Parameters
+    ----------
+    dataset_name : str
+        "mmlu", etc.
+    hint_types : list of str
+        Must contain "none" as the baseline plus the concrete hint categories.
+    model_name : str
+        Used for path lookup and output folders.
+    model / tokenizer :  HuggingFace instances already loaded in your pipeline.
+    device : str  ("cuda" | "cpu")
+    n_questions : int
+        Number of questions in the current run (for path construction).
+    cache_path : str | None
+        If set and the json file exists the function will *return* its content
+        without recomputation.  A fresh run will (over)write the same path.
+    seed : int
+        Random seed for the simple probe split.
+    """
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+
+    # ------------------------------------------------------------------
+    if cache_path is None:
+        cache_path = (
+            Path("data")
+            / dataset_name
+            / model_name
+            / f"attention_check_{n_questions}.json"
+        )
+
+    cache_path = Path(cache_path)
+    if cache_path.exists():
+        return _load_json(cache_path)
+
+    # ------------------------------------------------------------------
+    base_dir = Path("data") / dataset_name
+    input_questions = _load_json(base_dir / "input_mcq_data.json")
+    questions_by_id = {q["question_id"]: q for q in input_questions}
+
+    attention_per_q: Dict[int, Dict[str, float]] = {}
+
+    for hint_type in tqdm(hint_types, desc="⚡ computing attentions"):
+        if hint_type == "none":
+            hint_entries = {e["question_id"]: {"hint_text": ""} for e in input_questions}
+        else:
+            hint_file = base_dir / f"hints_{hint_type}.json"
+            hint_entries_raw = _load_json(hint_file)
+            hint_entries = {e["question_id"]: e for e in hint_entries_raw}
+
+        completions_file = (
+            base_dir
+            / model_name
+            / hint_type
+            / f"completions_with_{n_questions}.json"
+        )
+        completions_raw = _load_json(completions_file)
+        completions = {c["question_id"]: c["completion"] for c in completions_raw}
+
+        for qid, comp_text in completions.items():
+            question_entry = questions_by_id[qid]
+            hint_text = hint_entries.get(qid, {}).get("hint_text", "")
+
+            # NB: prompt was already included in `comp_text` (the saved file),
+            # so we treat everything before the assistant's first token as prompt.
+            # We still need the hint text string for alignment inside the sequence.
+            attention_val = _compute_attention_for_sample(
+                model, tokenizer, device,
+                prompt_text="",  # already in `comp_text`
+                completion_text=comp_text,
+                hint_text=hint_text,
+            )
+            attention_per_q.setdefault(qid, {})[hint_type] = attention_val
+
+    # ------------------------------------------------------------------
+    # ----- aggregate attention difference v baseline ------------------
+    baseline_name = "none"
+    delta_stats: Dict[str, Dict[str, float]] = {}
+    for hint_type in hint_types:
+        if hint_type == baseline_name:
+            continue
+        diffs = []
+        for qid, vals in attention_per_q.items():
+            if baseline_name in vals and hint_type in vals:
+                diffs.append(vals[hint_type] - vals[baseline_name])
+        if diffs:
+            delta_stats[hint_type] = {
+                "mean": float(np.mean(diffs)),
+                "std": float(np.std(diffs)),
+                "n": len(diffs),
+            }
+
+    # ------------------------------------------------------------------
+    # ------------------  probing: verbalisation -----------------------
+    X_all, y_all = [], []
+    for hint_type in hint_types:
+        if hint_type == "none":
+            continue
+        hint_ver_path = (
+            base_dir
+            / model_name
+            / hint_type
+            / f"hint_verification_with_{n_questions}.json"
+        )
+        ver_entries = _load_json(hint_ver_path)
+        ver_by_id = {v["question_id"]: v for v in ver_entries}
+        for qid, vals in attention_per_q.items():
+            if hint_type not in vals:
+                continue
+            if qid not in ver_by_id:
+                continue
+            X_all.append([vals[hint_type]])  # one‑dim feature
+            y_all.append(int(ver_by_id[qid]["verbalizes_hint"]))
+
+    X = np.asarray(X_all, dtype=float)
+    y = np.asarray(y_all, dtype=int)
+    if len(np.unique(y)) < 2:
+        probe_metrics = {"error": "y has only one class – cannot train"}
+    else:
+        probe_metrics = _train_probe(X, y, random_state=seed)
+
+    # ------------------------------------------------------------------
+    result = {
+        "per_question": attention_per_q,
+        "attention_difference": delta_stats,
+        "probe": probe_metrics,
+    }
+
+    _save_json(result, cache_path)
+    return result
+
+
+# -----------------------------------------------------------------------------
+# If this module is executed directly, run a tiny smoke test -------------------
+# -----------------------------------------------------------------------------
+if __name__ == "__main__":
+    import argparse
+    from a_confirm_posthoc.src.main.pipeline import load_model_and_tokenizer
+
+    parser = argparse.ArgumentParser(description="Quick smoke‑test for attention checker")
+    parser.add_argument("--model", default="deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B")
+    parser.add_argument("--n_questions", type=int, default=20)
+    parser.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
+    args = parser.parse_args()
+
+    model, tokenizer, model_name, device = load_model_and_tokenizer(args.model)
+    res = attention_check(
+        dataset_name="mmlu",
+        hint_types=["none", "sycophancy"],
+        model_name=model_name,
+        model=model,
+        tokenizer=tokenizer,
+        device=device,
+        n_questions=args.n_questions,
+    )
+    print(json.dumps(res["attention_difference"], indent=2))
