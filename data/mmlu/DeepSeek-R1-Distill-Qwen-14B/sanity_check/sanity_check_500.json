@@ -2,7 +2,7 @@
   "accuracy": 0.226,
   "correct": 113,
   "total": 500,
-  "runtime_s": 31.10384774208069,
+  "runtime_s": 30.981842041015625,
   "results": [
     {
       "question_id": 0,
