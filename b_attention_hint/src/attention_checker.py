@@ -289,7 +289,7 @@ def attention_check(
 # -----------------------------------------------------------------------------
 if __name__ == "__main__":
     import argparse
-    from a_confirm_posthoc.src.main.pipeline import load_model_and_tokenizer
+    from a_confirm_posthoc.src.main.xxpipeline import load_model_and_tokenizer
 
     parser = argparse.ArgumentParser(description="Quick smoke‑test for attention checker")
     parser.add_argument("--model", default="deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B")
