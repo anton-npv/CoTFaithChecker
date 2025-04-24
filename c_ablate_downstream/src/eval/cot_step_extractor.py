@@ -7,6 +7,10 @@ from typing import List, Dict
 from google import genai            # already used elsewhere
 client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
 
+#DEFAULT_MODEL = "gemini-pro"        # "gemini-2.0-flash" also works
+#DEFAULT_MODEL = "gemini-2.0-pro"        # "gemini-2.0-flash" also works
+DEFAULT_MODEL = "gemini-2.0-flash"
+
 def _prompt(completion: str) -> str:
     return f"""You are analysing a chain-of-thought.
 
@@ -27,7 +31,8 @@ def extract_steps(completions_path: str,
     out: List[Dict] = []
     for c in tqdm.tqdm(comps, desc="step-extract"):
         resp = client.models.generate_content(
-            model="gemini-2.0-pro",
+            #model="gemini-2.0-pro",
+            model=DEFAULT_MODEL,
             contents=_prompt(c["completion"]),
             config={"response_mime_type": "application/json"}
         )
