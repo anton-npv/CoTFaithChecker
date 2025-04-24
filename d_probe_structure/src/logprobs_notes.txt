@@ -1,0 +1,259 @@
+Okay so we found that in some cases, the model uses the hint to generate the answer, but does not verbalize it.
+
+Im interested to see at what point does the model commit to a particular answer, for cases where:
+
+1. It is not given a hint
+2. It is given a hint and it verbalizes it
+3. It is given a hint and it does not verbalize it
+
+
+The way I propose we do this is that we take the completion, right? and then every n tokens we insert something like we conduct an intervention and insert something like the final answer is end quote and then we run the model with this completion up to the point where we inserted the intervention and we collect logits over all the possible MCQ options such as A B C D Right and then we do this again with the intervention inserted N plus N tokens. And again, again, again, and we collect all the, all the logit probabilities, all the logit, actually we need log probes, not log probabilities, right? And we should also probably normalize them. So we want this to add up to, all of them to add up to one. All right. Okay, so we want to do that. And then we collect it at every end steps. And yeah, then we can plot it to see at what point does the model commit to a given MCQ option. And then we can plot it for every different kind, right? Of cases that we're interested in. 
+
+Note that I'm thinking about two types of interventions. Number one is where we insert something like dot dot dot. I think the final answer is. And then second type of intervention is where we insert end of thing, token, and then I think the final answer is. 
+
+And note that when looking at the completions, we're only interested in the part of the completions before the second <\\think> token. But think tokens are different for different kinds of models. So we need to like, so, you know, there needs to be a way that if like you give model name and then it looks at model name, it looks okay. This is this model, hence we need to look for this token. If it's another model, we need to look for another token. 
+
+Note that I would first like to run it in demo mode so that we need to be able to cap the number of answers that we're looking at. 
+
+And also in your tests, please don't make a lot of like try accept blocks Yeah, just Let's assume that's like words you think it's absolutely necessary. Let's do it But let's not make the code overly complicated with the try accept blocks Just want to make it run and I think the final the final code I want to run in a notebook right so we need you know whatever the utils files and everything maybe you know some other files but the final one I was sort of like want to go through it in a notebook to be able to go through it in a notebook for at least the demo purposes to see where stuff works or doesn't work and the notebook I want you to aim to generate is a by file, but you know, with separators that allow it to be a run like a notebook (#%%).
+
+
+=========================================
+Refined Experiment Plan (Logprobs Tracking)
+=========================================
+
+**Goal:**
+Track the evolution of model log probabilities assigned to multiple-choice answer options (A, B, C, D...) throughout the Chain-of-Thought (CoT) reasoning process. Compare this evolution across different conditions:
+1.  **Baseline:** Completions generated with `hint_type = "none"`.
+2.  **Hinted & Verbalized:** Completions generated with a specific hint type (e.g., `induced_urgency`) where the model switched its answer to the hinted option *and* explicitly mentioned/used the hint in its reasoning (`verbalizes_hint = true`).
+3.  **Hinted & Non-Verbalized:** Completions generated with the hint where the model switched to the hinted option *but did not* explicitly mention/use the hint (`verbalizes_hint = false`).
+
+**Initial Scope:**
+- Dataset: MMLU
+- Model: `deepseek-ai/DeepSeek-R1-Distill-Llama-8B`
+- Analyzed Hint Type: `induced_urgency` (initially, should be configurable)
+
+**Inputs:**
+- Model completions: Located in `data/[dataset]/[model]/[hint_type]/completions_with_[n].json`. Need baseline (`none`) and the analyzed hint type.
+- Switch analysis: `data/[dataset]/[model]/[hint_type]/switch_analysis_with_[n].json`. Used to identify switches to the hint.
+- Hint verification: `data/[dataset]/[model]/[hint_type]/hint_verification_with_[n].json`. Used to check `verbalizes_hint` status for relevant cases.
+- Original MCQ data: `data/[dataset]/input_mcq_data.json`. Needed to get the valid answer options (A, B, C, D...) for each question.
+
+**Core Process:**
+1.  **Load:** Model, tokenizer, analysis/verification files.
+2.  **Categorize Questions:** Based on `switch_analysis` and `hint_verification` files, identify question IDs belonging to the three target conditions (baseline, verbalized, non-verbalized) for the chosen hint type.
+    **IMPORTANT CLARIFICATION:** We are primarily interested in analyzing questions where the answer *switched to the intended hint*. The `hint_verification.json` file already contains only these question IDs. Therefore, the main loop should iterate through the question IDs present in the `hint_verification.json` for the analyzed hint type. For each such ID, we analyze both its baseline (`none`) completion and its corresponding hinted completion (which will have a status of either `verbalized` or `non_verbalized`).
+3.  **For each relevant Question ID & Condition:**
+    a.  Load the corresponding completion text.
+    b.  **Find Reasoning End:** Implement a function to reliably identify the end of the CoT reasoning section before the final answer selection (e.g., before "Final Answer: (X)" or similar model-specific markers).
+    c.  **Tokenize Reasoning:** Get the sequence of tokens for the reasoning part. Let `T` be the total number of reasoning tokens.
+    d.  **Iterate by Percentage:** Define steps (e.g., 10%, 20%, ..., 100%). For each percentage `p`:
+        i.  Calculate token index: `idx = floor(p * T)`.
+        ii. Get prefix tokens: `reasoning_tokens[0...idx]`.
+        iii. **Apply Intervention:**
+            - Select intervention type (configurable, e.g., "dots" or "eos_then_dots").
+            - Append intervention prompt string (e.g., "... The final answer is " or `tokenizer.eos_token` + " The final answer is ").
+            - Prepare input for the model.
+        iv. **Get Logits:** Perform a *single forward pass* with the model (`model(...)` using Hugging Face). Extract the full vocabulary logits (log probabilities) predicted for the *next token* immediately following the intervention prompt.
+        v. **Extract Option Logits:** Identify the token IDs corresponding to the valid answer options (e.g., " A", " B", etc.) and retrieve their specific logit values from the full distribution.
+        
+        vi. **Store:** Record the extracted option logits for this step/percentage.
+
+**Key Implementation Details:**
+- **Reasoning Boundary:** Needs a new, potentially model-specific, utility function.
+- **Logits:** Extract raw logits from the model's forward pass output. Normalization (softmax over options) will be a separate post-processing step for analysis/plotting.
+- **Option Token Mapping:** Need a function to get the correct token IDs for options like " A", " B" for the loaded tokenizer.
+- **Intervention Prompts:** Support multiple types, configurable by the user.
+    - Type 1: "... The final answer is "
+    - Type 2: `tokenizer.eos_token` + " The final answer is "
+- **Steps:** Use percentage steps (e.g., `[10, 20, ..., 100]`), configurable.
+- **Configurability:** Allow setting dataset, model, analyzed hint type, number of questions (for demo mode), intervention types, percentage steps via parameters/config.
+
+**Output Structure (JSON):**
+```json
+{
+  "experiment_details": {
+    "dataset": "...",
+    "model": "...",
+    "analyzed_hint_type": "...",
+    "intervention_types": ["...", "..."],
+    "percentage_steps": [...]
+  },
+  "results": {
+    "question_id": {
+      "baseline": { // From 'none' hint completion
+        "intervention_type_1": {
+          "reasoning_tokens": T_base,
+          "logprobs_sequence": [
+            { "step_percentage": p1, "token_index": idx1, "logprobs": {"A": ..., "B": ...} }, ...
+          ]
+        },
+        "intervention_type_2": { /* ... */ }
+      },
+      "hinted": { // From analyzed hint type completion
+        "status": "verbalized" | "non_verbalized" | "other", // Determined from analysis files
+        "intervention_type_1": {
+          "reasoning_tokens": T_hinted,
+          "logprobs_sequence": [ /* ... */ ]
+        },
+        "intervention_type_2": { /* ... */ }
+      }
+    },
+    // ... more question_ids ...
+  }
+}
+```
+
+**Code Location:**
+- Core logic: `src/experiments/logprobs/`
+- Execution Notebook: `notebooks/logprobs_analysis.py` (using `# %%` cells for structure)
+
+**Avoid:** Overuse of try-except blocks. Focus on clear logic first.
+
+
+=====================================
+Pseudocode for notebooks/logprobs_analysis.py
+=====================================
+
+# 1. Imports and Setup
+Import libraries (os, json, logging, sys)
+Import custom modules (main.pipeline, experiments.logprobs.pipeline)
+Setup logging
+Add src to sys.path
+
+# 2. Configuration
+Define MODEL_PATH (single string)
+Define DATASET (single string)
+Define HINT_TYPES_TO_ANALYZE (list of strings, e.g., ["induced_urgency", "sycophancy"])
+Define INTERVENTION_TYPES (list of strings, e.g., ["dots", "eos_then_dots"])
+Define PERCENTAGE_STEPS (list of ints)
+Define N_QUESTIONS (int, for loading source files)
+Define DEMO_MODE_N (int or None)
+Define DATA_DIR (string)
+
+# 3. Load Model and Tokenizer
+Call load_model_and_tokenizer(MODEL_PATH) -> model, tokenizer, _, device
+Derive model_name from MODEL_PATH
+(Raise SystemExit if loading fails)
+
+# 4. Run Logprobs Pipeline
+IF model and tokenizer loaded successfully:
+    Define output_dir_base = based on DATA_DIR, DATASET, model_name
+    Call experiments.logprobs.pipeline.run_logprobs_analysis_for_hint_types(
+        Pass all relevant config: model, tokenizer, device, model_name, dataset,
+        data_dir, hint_types_to_analyze, intervention_types, percentage_steps,
+        n_questions, demo_mode_n, output_dir_base
+    )
+ELSE:
+    Log error
+
+======================================================
+Pseudocode for src/experiments/logprobs/pipeline.py
+(run_logprobs_analysis_for_hint_types function)
+======================================================
+
+FUNCTION run_logprobs_analysis_for_hint_types(arguments...):
+    Log start info (model, dataset, hint types, etc.)
+
+    # 1. Load Common Data
+    Load mcq_data = io.load_mcq_data(...)
+    IF mcq_data is empty: Log error and RETURN
+
+    # 2. Determine Relevant QIDs & Standard Options
+    Initialize all_relevant_qids = empty set
+    Initialize all_hint_verification_data = empty dict
+    FOR ht IN hint_types_to_analyze:
+        Load verification_data = io.load_hint_verification_data(..., hint_type=ht, ...)
+        Store verification_data in all_hint_verification_data[ht]
+        Get qids_for_hint = set(verification_data.keys())
+        Update all_relevant_qids with qids_for_hint
+    
+    IF all_relevant_qids is empty: Log warning and RETURN
+
+    # Determine standard options from first relevant QID
+    Get question_data = mcq_data[first_qid]
+    Extract options = sorted list of single uppercase keys from question_data
+    IF options list is empty: RAISE ValueError
+    Log determined options
+    Get standard_option_token_ids = logit_extraction.get_option_token_ids(options, tokenizer)
+    IF mapping failed: RAISE ValueError
+
+    # Apply demo mode limit
+    Create final list qids_to_process_final from all_relevant_qids (sorted)
+    IF demo_mode_n is set:
+        Slice qids_to_process_final = qids_to_process_final[:demo_mode_n]
+
+    # 3. Process Baseline ("none")
+    Initialize baseline_results = empty dict
+    FOR qid IN tqdm(qids_to_process_final, desc="Processing Baseline"):
+        Initialize baseline_results[qid] = empty dict
+        Load completion = io.load_completion(..., hint_type="none", ...)
+        IF completion is None: Log warning and CONTINUE to next qid
+
+        TRY:
+            Find reasoning_end = logit_extraction.find_reasoning_end(...)
+            FOR intervention_type IN intervention_types:
+                Get prompt = utils.get_intervention_prompt(...)
+                IF prompt is invalid: RAISE ValueError
+                
+                Call sequence = logit_extraction.extract_logprobs_sequence(...)
+                Get reasoning_tokens from sequence
+                Store results in baseline_results[qid][intervention_type]
+        EXCEPT Exception as e:
+            Log error for qid
+            Store error info in baseline_results[qid]
+
+    # 4. Save Baseline Results
+    Determine logprobs_output_dir based on output_dir_base
+    Create logprobs_output_dir if needed
+    Define baseline_output_filename
+    TRY:
+        Construct output_data dictionary (experiment_details, results=baseline_results)
+        Dump output_data to baseline_output_filename as JSON
+    EXCEPT Exception as e:
+        Log error saving baseline results
+
+    # 5. Loop Through Hint Types for Hinted Processing
+    FOR hint_type IN hint_types_to_analyze:
+        Log processing start for hint_type
+        Initialize hinted_results = empty dict
+        Get hint_verification_data = all_hint_verification_data[hint_type]
+        
+        # Filter QIDs for this specific hint type
+        Filter qids_for_this_hint = [qid FROM qids_to_process_final IF qid IN hint_verification_data]
+        IF qids_for_this_hint is empty: Log warning and CONTINUE to next hint_type
+
+        FOR qid IN tqdm(qids_for_this_hint, desc=f"Processing {hint_type}"):
+            Get verbalizes = hint_verification_data[qid]
+            Set status = "verbalized" if verbalizes else "non_verbalized"
+            Initialize hinted_results[qid] = { "status": status }
+
+            Load completion = io.load_completion(..., hint_type=hint_type, ...)
+            IF completion is None:
+                Log warning
+                Store error info in hinted_results[qid]
+                CONTINUE to next qid
+            
+            TRY:
+                Find reasoning_end = logit_extraction.find_reasoning_end(...)
+                FOR intervention_type IN intervention_types:
+                    Get prompt = utils.get_intervention_prompt(...)
+                    IF prompt is invalid: RAISE ValueError
+
+                    Call sequence = logit_extraction.extract_logprobs_sequence(...)
+                    Get reasoning_tokens from sequence
+                    Store results in hinted_results[qid][intervention_type]
+            EXCEPT Exception as e:
+                Log error for qid/hint_type
+                Store error info in hinted_results[qid]
+
+        # 6. Save Results for This Hint Type
+        Define hinted_output_filename (using hint_type)
+        TRY:
+            Construct output_data dictionary (experiment_details, results=hinted_results)
+            Dump output_data to hinted_output_filename as JSON
+        EXCEPT Exception as e:
+            Log error saving hinted results for hint_type
+
+    Log analysis finished
+
