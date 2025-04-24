@@ -3,3 +3,10 @@ a_confirm_posthoc/src/main/__pycache__
 a_confirm_posthoc/src/utils/__pycache__
 a_confirm_posthoc/src/eval/__pycache__
 b_attention_hint/src/__pycache__
+d_logprobs_analysis/src/__pycache__
+d_logprobs_analysis/src/main/__pycache__
+d_logprobs_analysis/src/utils/__pycache__
+d_logprobs_analysis/src/eval/__pycache__
+e_probe_structure/src/__pycache__
+e_probe_structure/src/main/__pycache__
+
