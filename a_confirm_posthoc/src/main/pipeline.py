@@ -1,225 +1,163 @@
-"""High-level pipeline function for the logprobs experiment."""
-
-import os
 import json
+import os
+from typing import List, Dict, Optional
+import torch
 import logging
-from tqdm import tqdm
+import time # For timing
 
-from d_probe_structure.src.io import load_hint_verification_data, load_mcq_data, load_completion
-from d_probe_structure.src.logit_extraction import get_option_token_ids, find_reasoning_end, extract_logprobs_sequence, find_reasoning_start
-from d_probe_structure.src.utils import get_intervention_prompt
+# Assuming utils are in the same directory or PYTHONPATH is set correctly
+from a_confirm_posthoc.src.utils.prompt_constructor import construct_prompt
+from a_confirm_posthoc.src.utils.model_handler import generate_completion, load_model_and_tokenizer
 
-def run_logprobs_analysis_for_hint_types(
+# Setup basic logging (optional, but good practice)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+# Define known chat templates (can be expanded)
+# Using the structure expected by tokenize_instructions: {instruction}
+KNOWN_CHAT_TEMPLATES = {
+    "llama": "<|begin_of_text|><|start_header_id|>user<|end_header_id|>\n{instruction}<|eot_id|><|start_header_id|>assistant<|end_header_id|>",
+    "llama3": "<|begin_of_text|><|start_header_id|>user<|end_header_id|>\n{instruction}<|eot_id|><|start_header_id|>assistant<|end_header_id|>",
+    "qwen": "User: {instruction}\nAssistant:" # A generic fallback
+}
+
+def get_chat_template(model_name: str) -> str:
+    """Selects a chat template based on the model name."""
+    model_name_lower = model_name.lower()
+    if "llama" in model_name_lower or "llama" in model_name_lower:
+        return KNOWN_CHAT_TEMPLATES["llama3"]
+    elif "qwen" in model_name_lower: # Assuming mistral instruct models
+        return KNOWN_CHAT_TEMPLATES["qwen"]
+    # Add more specific checks if needed
+    else:
+        logging.warning(f"No specific chat template found for {model_name}. Using default.")
+        return KNOWN_CHAT_TEMPLATES["default"]
+
+def load_data(data_path: str) -> List[Dict]:
+    """Loads JSON data from a file, handling potential errors."""
+    if not os.path.exists(data_path):
+        logging.error(f"Data file not found: {data_path}")
+        return [] # Return empty list to indicate failure
+    try:
+        with open(data_path, 'r') as f:
+            return json.load(f)
+    except json.JSONDecodeError:
+        logging.error(f"Error: Could not decode JSON from {data_path}")
+        return []
+    except Exception as e:
+        logging.error(f"An unexpected error occurred loading {data_path}: {e}")
+        return []
+
+def save_results(results: List[Dict], dataset_name: str, hint_type: str, model_name:str, n_questions: int):
+    """Saves the results to a JSON file in the dataset/model/hint_type directory."""
+    # Construct path including model name directory and remove model name from filename
+    output_path = os.path.join("data", dataset_name, model_name, hint_type, f"completions_with_{str(n_questions)}.json")
+    try:
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        with open(output_path, 'w') as f:
+            json.dump(results, f, indent=2)
+        logging.info(f"Results saved to {output_path}")
+    except Exception as e:
+        logging.error(f"Failed to save results to {output_path}: {e}")
+
+
+def generate_dataset_completions(
     model,
     tokenizer,
-    device: str,
-    model_name: str,
-    dataset: str,
-    data_dir: str,
-    hint_types_to_analyze: list[str], # e.g., ["induced_urgency", "sycophancy"]
-    intervention_types: list[str],
-    percentage_steps: list[int],
-    n_questions: int,
-    demo_mode_n: int | None = None,
-    output_dir_base: str | None = None # Base directory for saving results
+    model_name,
+    device,
+    dataset_name: str,
+    hint_types: List[str], # e.g., ["gsm_mc_urgency", "gsm_mc_psychophancy"]
+    batch_size: int = 8,
+    max_new_tokens: Optional[int] = 512,
+    n_questions: Optional[int] = None,
 ):
-    """Runs the logit extraction analysis for a model/dataset across specified hint types.
-
-    Saves results separately for baseline and each analyzed hint type.
     """
-    logging.info(f"--- Starting Logprobs Analysis --- ")
-    logging.info(f"Model: {model_name}, Dataset: {dataset}")
-    logging.info(f"Analyzing Hint Types: {hint_types_to_analyze}")
-    logging.info(f"Intervention Types: {intervention_types}")
+    Loads a model, processes datasets for specified hint types (with and without hints),
+    generates completions, and saves the results.
 
-    # --- 1. Load MCQ Data --- 
-    mcq_data = load_mcq_data(data_dir=data_dir, dataset=dataset)
-    if not mcq_data:
-        logging.error(f"Failed to load MCQ data for {dataset}. Aborting.")
-        return
-    logging.info(f"Loaded MCQ data for {len(mcq_data)} questions.")
+    Args:
+        model_name: Name/path of the Hugging Face model.
+        hint_types: List of hint type identifiers (used to find data files like f'{data_base_dir}/{ht}.json').
+        batch_size: Batch size for generation.
+        max_new_tokens: Maximum number of new tokens. None means generate until EOS.
+    """
+    start_time = time.time()
+    
+        
+    # --- 2. Select Chat Template --- 
+    chat_template = get_chat_template(model_name)
+    logging.info(f"Using chat template: {chat_template}")
 
-    # --- 2. Determine Relevant QIDs & Standard Options --- 
-    all_relevant_qids = set()
-    all_hint_verification_data = {}
-    for ht in hint_types_to_analyze:
-        logging.info(f"Loading hint verification data for hint type: {ht}")
-        verification_data = load_hint_verification_data(
-            data_dir=data_dir, dataset=dataset, model_name=model_name, 
-            hint_type=ht, n_questions=n_questions
+    # --- 3. Process each hint type dataset --- 
+    for hint_type in hint_types:
+        logging.info(f"--- Processing dataset for hint type: {hint_type} ---")
+        # Use the standardized input filename
+        questions_data_path = os.path.join("data", dataset_name, "input_mcq_data.json")
+        # Load hints from the dataset directory, using the new filename format
+        hints_data_path = os.path.join("data", dataset_name, f"hints_{hint_type}.json")
+        
+        # Load questions and hints data
+        data = load_data(questions_data_path)[:n_questions]  # Only use the first 10 entries
+        hints = load_data(hints_data_path)[:n_questions]
+        
+        # Create a dictionary mapping question_id to the entire hint object
+        # Handles cases where hints file might be empty or not found (load_data returns [])
+        hint_data_dict = {hint["question_id"]: hint for hint in hints}
+        
+        # Add hint_text to each question entry
+        for entry in data:
+            # Retrieve the full hint object for the question ID
+            hint_entry = hint_data_dict.get(entry["question_id"])
+            # Add hint_text if a hint entry exists for this question ID
+            entry["hint_text"] = hint_entry.get("hint_text") if hint_entry else None
+
+            
+
+        # --- Generate with hints --- 
+        logging.info(f"Generating completions for {hint_type}...")
+        prompts = []
+        for entry in data:
+            prompt_text = construct_prompt(entry) # Use original entry with hint
+            prompts.append({"question_id": entry["question_id"], "prompt_text": prompt_text})
+            
+        
+        results = generate_completion(
+            model, tokenizer, device, prompts, 
+            chat_template, batch_size, max_new_tokens
         )
-        all_hint_verification_data[ht] = verification_data
-        qids_for_hint = set(verification_data.keys())
-        logging.info(f"  Found {len(qids_for_hint)} questions that switched to hint '{ht}'.")
-        all_relevant_qids.update(qids_for_hint)
-    
-    logging.info(f"Total relevant QIDs (switched to any analyzed hint): {len(all_relevant_qids)}")
 
-    if not all_relevant_qids:
-        logging.warning("No relevant questions found based on hint verification files. Nothing to process.")
-        return
-
-    # Determine standard options and get token IDs once
-    # Assuming options are consistent, check first relevant QID
-    first_qid = next(iter(all_relevant_qids))
-    question_data = mcq_data[first_qid]
-    # Extract option labels (e.g., 'A', 'B', 'C', 'D') by finding single uppercase letter keys
-    options = sorted([key for key in question_data.keys() if len(key) == 1 and key.isupper()])
-    if not options:
-         raise ValueError(f"Could not determine standard options from keys of QID {first_qid}")
-    
-    logging.info(f"Determined standard options: {options}")
-    standard_option_token_ids = get_option_token_ids(options, tokenizer)
-    if len(standard_option_token_ids) != len(options):
-         raise ValueError(f"Failed to map all standard option tokens: {options}. Found: {standard_option_token_ids}")
-    logging.info(f"Standard option token IDs: {standard_option_token_ids}")
-
-    # Apply demo mode limit if needed
-    qids_to_process_final = sorted(list(all_relevant_qids))
-    if demo_mode_n is not None and demo_mode_n > 0:
-        qids_to_process_final = qids_to_process_final[:demo_mode_n]
-        logging.warning(f"Running in DEMO mode. Processing only {len(qids_to_process_final)} relevant questions.")
-
-    # --- 3. Process Baseline ("none") --- 
-    baseline_results = {}
-    logging.info(f"Processing baseline ('none') completions for {len(qids_to_process_final)} relevant questions...")
-    for qid in tqdm(qids_to_process_final, desc="Processing Baseline"):
-        baseline_results[qid] = {}
-        completion = load_completion(data_dir, dataset, model_name, "none", n_questions, qid)
-        if not completion:
-            logging.warning(f"Baseline completion not found for QID {qid}. Skipping baseline processing for this QID.")
-            continue # Skip this qid for baseline
+        save_results(results, dataset_name, hint_type, model_name, n_questions)
         
-        try:
-            reasoning_start = find_reasoning_start(completion, model_name)
-            reasoning_end = find_reasoning_end(completion, model_name)
-            
 
-            for intervention_type in intervention_types:
-                prompt = get_intervention_prompt(intervention_type)
-                if not prompt:
-                    raise ValueError(f"Could not generate prompt for type {intervention_type}.")
-                
-                sequence = extract_logprobs_sequence(
-                    completion_text=completion,
-                    reasoning_start_index=reasoning_start,
-                    reasoning_end_index=reasoning_end,
-                    option_token_ids=standard_option_token_ids,
-                    intervention_prompt=prompt,
-                    percentage_steps=percentage_steps,
-                    model=model, tokenizer=tokenizer, device=device
-                )
-                reasoning_tokens = sequence[-1]["token_index"] if sequence else 0
-                baseline_results[qid][intervention_type] = {
-                    "reasoning_tokens": reasoning_tokens,
-                    "logprobs_sequence": sequence
-                }
-        except Exception as e:
-            logging.error(f"Error processing baseline for QID {qid}: {e}", exc_info=True)
-            # Mark as failed or remove partial results?
-            baseline_results[qid] = {"error": str(e)} 
-
-    # --- 4. Save Baseline Results --- 
-    # Define output directory if not provided
-    if output_dir_base is None:
-        output_dir_base = os.path.join(data_dir, dataset, model_name)
-    logprobs_output_dir = os.path.join(output_dir_base, "logprobs_analysis")
-    os.makedirs(logprobs_output_dir, exist_ok=True)
-    
-    baseline_output_filename = os.path.join(logprobs_output_dir, "baseline_logprobs.json")
-    logging.info(f"Saving baseline logprobs results to {baseline_output_filename}")
-    try:
-        output_data = {
-            "experiment_details": {
-                "dataset": dataset,
-                "model": model_name,
-                "hint_type": "none",
-                "intervention_types": intervention_types,
-                "percentage_steps": percentage_steps
-            },
-            "results": baseline_results
-        }
-        with open(baseline_output_filename, 'w') as f:
-            json.dump(output_data, f, indent=2)
-        logging.info("Baseline results saved.")
-    except Exception as e:
-        logging.error(f"Failed to save baseline results: {e}")
-
-    # --- 5. Loop Through Hint Types --- 
-    for hint_type in hint_types_to_analyze:
-        logging.info(f"--- Processing Hint Type: {hint_type} ---")
-        hinted_results = {}
-        hint_verification_data = all_hint_verification_data.get(hint_type, {})
+    # --- 4. Cleanup --- 
+    # logging.info("Cleaning up model and tokenizer...")
+    # del model
+    # del tokenizer
+    # if device.type == 'cuda':
+    #     torch.cuda.empty_cache()
+    #     logging.info("CUDA cache cleared.")
         
-        # Process only the QIDs relevant to *this* hint type and also in the final processing list
-        qids_for_this_hint = [qid for qid in qids_to_process_final if qid in hint_verification_data]
-        
-        if not qids_for_this_hint:
-            logging.warning(f"No questions to process for hint type '{hint_type}' after filtering/demo mode. Skipping.")
-            continue
+    end_time = time.time()
+    logging.info(f"Total processing time: {end_time - start_time:.2f} seconds")
 
-        logging.info(f"Processing {len(qids_for_this_hint)} questions for hint type: {hint_type}")
-        for qid in tqdm(qids_for_this_hint, desc=f"Processing {hint_type}"):
-            verbalizes = hint_verification_data[qid]
-            status = "verbalized" if verbalizes else "non_verbalized"
-            hinted_results[qid] = { "status": status }
 
-            completion = load_completion(data_dir, dataset, model_name, hint_type, n_questions, qid)
-            if not completion:
-                logging.warning(f"Hinted completion '{hint_type}' not found for QID {qid}. Skipping processing for this QID/hint.")
-                hinted_results[qid]["error"] = "Completion file not found or empty"
-                continue
-            
-            try:
-                reasoning_start = find_reasoning_start(completion, model_name)
-                reasoning_end = find_reasoning_end(completion, model_name)
 
-                if reasoning_end <= reasoning_start:
-                    logging.warning(f"Invalid reasoning boundaries for hint '{hint_type}' QID {qid} (Start: {reasoning_start}, End: {reasoning_end}). Skipping.")
-                    hinted_results[qid]["error"] = "Invalid reasoning boundaries"
-                    continue
+# Example of how to call the function (replace main() block)
+if __name__ == "__main__":
+    # Example Usage: Load model/tokenizer first (implementation depends on model_handler.py)
+    # model, tokenizer, model_name_loaded, device = load_model_and_tokenizer("deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B")
+    # generate_dataset_completions(
+    #     model=model,
+    #     tokenizer=tokenizer,
+    #     model_name=model_name_loaded,
+    #     device=device,
+    #     dataset_name="gsm8k",  # Provide the dataset name
+    #     hint_types=["induced_urgency"],
+    #     batch_size=4,
+    #     max_new_tokens=1024,
+    #     n_questions=10 # Example: limit to 10 questions
+    # )
+    pass # Placeholder, actual model loading needed
 
-                for intervention_type in intervention_types:
-                    prompt = get_intervention_prompt(intervention_type)
-                    if not prompt:
-                         raise ValueError(f"Could not generate prompt for type {intervention_type}.")
 
-                    sequence = extract_logprobs_sequence(
-                        completion_text=completion,
-                        reasoning_start_index=reasoning_start,
-                        reasoning_end_index=reasoning_end,
-                        option_token_ids=standard_option_token_ids,
-                        intervention_prompt=prompt,
-                        percentage_steps=percentage_steps,
-                        model=model, tokenizer=tokenizer, device=device
-                    )
-                    reasoning_tokens = sequence[-1]["token_index"] if sequence else 0
-                    hinted_results[qid][intervention_type] = {
-                        "reasoning_tokens": reasoning_tokens,
-                        "logprobs_sequence": sequence
-                    }
-            except Exception as e:
-                 logging.error(f"Error processing hint '{hint_type}' for QID {qid}: {e}", exc_info=True)
-                 hinted_results[qid]["error"] = str(e)
-
-        # --- Save Results for This Hint Type --- 
-        hinted_output_filename = os.path.join(logprobs_output_dir, f"{hint_type}_logprobs.json")
-        logging.info(f"Saving '{hint_type}' logprobs results to {hinted_output_filename}")
-        try:
-            output_data = {
-                "experiment_details": {
-                    "dataset": dataset,
-                    "model": model_name,
-                    "analyzed_hint_type": hint_type,
-                    "intervention_types": intervention_types,
-                    "percentage_steps": percentage_steps
-                },
-                "results": hinted_results
-            }
-            with open(hinted_output_filename, 'w') as f:
-                json.dump(output_data, f, indent=2)
-            logging.info(f"'{hint_type}' results saved.")
-        except Exception as e:
-            logging.error(f"Failed to save '{hint_type}' results: {e}")
-
-    logging.info("--- Logprobs Analysis Finished --- ") 
+# Remove the old main() function and argparse code 
