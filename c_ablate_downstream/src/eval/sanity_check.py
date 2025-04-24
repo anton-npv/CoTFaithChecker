@@ -11,7 +11,7 @@ from typing import List, Dict, Optional
 
 import torch                   # only to satisfy type hints; not used directly
 
-from a_confirm_posthoc.src.main.pipeline import get_chat_template
+from a_confirm_posthoc.src.main.xxpipeline import get_chat_template
 from a_confirm_posthoc.src.utils.model_handler import generate_completion
 
 # --------------------------------------------------------------------------- #
