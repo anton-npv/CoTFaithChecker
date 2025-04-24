@@ -1,0 +1,1085 @@
+{
+  "experiment_details": {
+    "dataset": "mmlu",
+    "model": "DeepSeek-R1-Distill-Llama-8B",
+    "hint_type": "none",
+    "intervention_types": [
+      "dots",
+      "dots_eot"
+    ],
+    "percentage_steps": [
+      10,
+      20,
+      30,
+      40,
+      50,
+      60,
+      70,
+      80,
+      90,
+      100
+    ]
+  },
+  "results": {
+    "6": {
+      "dots": {
+        "reasoning_tokens": 530,
+        "logprobs_sequence": [
+          {
+            "step_percentage": 10,
+            "token_index": 53,
+            "logprobs": {
+              "A": 17.875,
+              "B": 13.0,
+              "C": 13.0,
+              "D": 13.5625
+            }
+          },
+          {
+            "step_percentage": 20,
+            "token_index": 106,
+            "logprobs": {
+              "A": 15.6875,
+              "B": 12.8125,
+              "C": 13.125,
+              "D": 12.6875
+            }
+          },
+          {
+            "step_percentage": 30,
+            "token_index": 159,
+            "logprobs": {
+              "A": 13.875,
+              "B": 12.875,
+              "C": 13.625,
+              "D": 12.3125
+            }
+          },
+          {
+            "step_percentage": 40,
+            "token_index": 212,
+            "logprobs": {
+              "A": 16.125,
+              "B": 11.625,
+              "C": 12.8125,
+              "D": 12.8125
+            }
+          },
+          {
+            "step_percentage": 50,
+            "token_index": 265,
+            "logprobs": {
+              "A": 16.25,
+              "B": 9.0,
+              "C": 9.875,
+              "D": 11.9375
+            }
+          },
+          {
+            "step_percentage": 60,
+            "token_index": 318,
+            "logprobs": {
+              "A": 7.625,
+              "B": 5.6875,
+              "C": 9.25,
+              "D": 5.6875
+            }
+          },
+          {
+            "step_percentage": 70,
+            "token_index": 371,
+            "logprobs": {
+              "A": 15.0,
+              "B": 14.0625,
+              "C": 24.0,
+              "D": 11.625
+            }
+          },
+          {
+            "step_percentage": 80,
+            "token_index": 424,
+            "logprobs": {
+              "A": 14.0,
+              "B": 11.75,
+              "C": 21.75,
+              "D": 10.1875
+            }
+          },
+          {
+            "step_percentage": 90,
+            "token_index": 477,
+            "logprobs": {
+              "A": 13.25,
+              "B": 10.375,
+              "C": 17.75,
+              "D": 9.3125
+            }
+          },
+          {
+            "step_percentage": 100,
+            "token_index": 530,
+            "logprobs": {
+              "A": 15.6875,
+              "B": 14.625,
+              "C": 23.125,
+              "D": 13.4375
+            }
+          }
+        ]
+      },
+      "dots_eot": {
+        "reasoning_tokens": 530,
+        "logprobs_sequence": [
+          {
+            "step_percentage": 10,
+            "token_index": 53,
+            "logprobs": {
+              "A": 19.0,
+              "B": 18.25,
+              "C": 18.625,
+              "D": 19.25
+            }
+          },
+          {
+            "step_percentage": 20,
+            "token_index": 106,
+            "logprobs": {
+              "A": 19.875,
+              "B": 19.75,
+              "C": 18.75,
+              "D": 19.625
+            }
+          },
+          {
+            "step_percentage": 30,
+            "token_index": 159,
+            "logprobs": {
+              "A": 20.0,
+              "B": 19.75,
+              "C": 18.75,
+              "D": 19.625
+            }
+          },
+          {
+            "step_percentage": 40,
+            "token_index": 212,
+            "logprobs": {
+              "A": 19.375,
+              "B": 19.25,
+              "C": 17.875,
+              "D": 19.0
+            }
+          },
+          {
+            "step_percentage": 50,
+            "token_index": 265,
+            "logprobs": {
+              "A": 18.875,
+              "B": 18.75,
+              "C": 17.625,
+              "D": 18.5
+            }
+          },
+          {
+            "step_percentage": 60,
+            "token_index": 318,
+            "logprobs": {
+              "A": 19.625,
+              "B": 19.125,
+              "C": 18.75,
+              "D": 19.375
+            }
+          },
+          {
+            "step_percentage": 70,
+            "token_index": 371,
+            "logprobs": {
+              "A": 15.9375,
+              "B": 16.25,
+              "C": 24.5,
+              "D": 13.375
+            }
+          },
+          {
+            "step_percentage": 80,
+            "token_index": 424,
+            "logprobs": {
+              "A": 15.9375,
+              "B": 15.9375,
+              "C": 24.25,
+              "D": 13.0
+            }
+          },
+          {
+            "step_percentage": 90,
+            "token_index": 477,
+            "logprobs": {
+              "A": 16.375,
+              "B": 16.75,
+              "C": 24.0,
+              "D": 14.0625
+            }
+          },
+          {
+            "step_percentage": 100,
+            "token_index": 530,
+            "logprobs": {
+              "A": 16.5,
+              "B": 16.625,
+              "C": 25.0,
+              "D": 14.6875
+            }
+          }
+        ]
+      }
+    },
+    "13": {
+      "dots": {
+        "reasoning_tokens": 358,
+        "logprobs_sequence": [
+          {
+            "step_percentage": 10,
+            "token_index": 36,
+            "logprobs": {
+              "A": 19.875,
+              "B": 19.625,
+              "C": 19.5,
+              "D": 18.875
+            }
+          },
+          {
+            "step_percentage": 20,
+            "token_index": 72,
+            "logprobs": {
+              "A": 19.875,
+              "B": 19.875,
+              "C": 19.875,
+              "D": 18.875
+            }
+          },
+          {
+            "step_percentage": 30,
+            "token_index": 108,
+            "logprobs": {
+              "A": 18.125,
+              "B": 17.75,
+              "C": 17.875,
+              "D": 17.125
+            }
+          },
+          {
+            "step_percentage": 40,
+            "token_index": 144,
+            "logprobs": {
+              "A": 19.625,
+              "B": 19.625,
+              "C": 18.875,
+              "D": 18.375
+            }
+          },
+          {
+            "step_percentage": 50,
+            "token_index": 179,
+            "logprobs": {
+              "A": 21.75,
+              "B": 17.125,
+              "C": 15.375,
+              "D": 15.3125
+            }
+          },
+          {
+            "step_percentage": 60,
+            "token_index": 215,
+            "logprobs": {
+              "A": 23.625,
+              "B": 16.25,
+              "C": 14.25,
+              "D": 14.0
+            }
+          },
+          {
+            "step_percentage": 70,
+            "token_index": 251,
+            "logprobs": {
+              "A": 22.75,
+              "B": 17.625,
+              "C": 16.5,
+              "D": 16.5
+            }
+          },
+          {
+            "step_percentage": 80,
+            "token_index": 287,
+            "logprobs": {
+              "A": 22.0,
+              "B": 17.5,
+              "C": 16.5,
+              "D": 16.125
+            }
+          },
+          {
+            "step_percentage": 90,
+            "token_index": 323,
+            "logprobs": {
+              "A": 24.0,
+              "B": 17.5,
+              "C": 15.6875,
+              "D": 14.6875
+            }
+          },
+          {
+            "step_percentage": 100,
+            "token_index": 358,
+            "logprobs": {
+              "A": 22.5,
+              "B": 14.0,
+              "C": 14.0625,
+              "D": 12.5625
+            }
+          }
+        ]
+      },
+      "dots_eot": {
+        "reasoning_tokens": 358,
+        "logprobs_sequence": [
+          {
+            "step_percentage": 10,
+            "token_index": 36,
+            "logprobs": {
+              "A": 20.125,
+              "B": 20.625,
+              "C": 20.25,
+              "D": 18.875
+            }
+          },
+          {
+            "step_percentage": 20,
+            "token_index": 72,
+            "logprobs": {
+              "A": 20.625,
+              "B": 20.375,
+              "C": 20.875,
+              "D": 20.25
+            }
+          },
+          {
+            "step_percentage": 30,
+            "token_index": 108,
+            "logprobs": {
+              "A": 20.625,
+              "B": 20.625,
+              "C": 21.125,
+              "D": 20.375
+            }
+          },
+          {
+            "step_percentage": 40,
+            "token_index": 144,
+            "logprobs": {
+              "A": 20.875,
+              "B": 21.125,
+              "C": 20.875,
+              "D": 20.125
+            }
+          },
+          {
+            "step_percentage": 50,
+            "token_index": 179,
+            "logprobs": {
+              "A": 23.75,
+              "B": 18.625,
+              "C": 16.875,
+              "D": 16.625
+            }
+          },
+          {
+            "step_percentage": 60,
+            "token_index": 215,
+            "logprobs": {
+              "A": 24.375,
+              "B": 17.875,
+              "C": 16.375,
+              "D": 15.8125
+            }
+          },
+          {
+            "step_percentage": 70,
+            "token_index": 251,
+            "logprobs": {
+              "A": 24.75,
+              "B": 17.375,
+              "C": 16.375,
+              "D": 15.3125
+            }
+          },
+          {
+            "step_percentage": 80,
+            "token_index": 287,
+            "logprobs": {
+              "A": 24.75,
+              "B": 17.625,
+              "C": 16.75,
+              "D": 15.75
+            }
+          },
+          {
+            "step_percentage": 90,
+            "token_index": 323,
+            "logprobs": {
+              "A": 24.375,
+              "B": 17.375,
+              "C": 16.75,
+              "D": 15.3125
+            }
+          },
+          {
+            "step_percentage": 100,
+            "token_index": 358,
+            "logprobs": {
+              "A": 25.25,
+              "B": 14.1875,
+              "C": 15.375,
+              "D": 13.3125
+            }
+          }
+        ]
+      }
+    },
+    "26": {
+      "dots": {
+        "reasoning_tokens": 1133,
+        "logprobs_sequence": [
+          {
+            "step_percentage": 10,
+            "token_index": 114,
+            "logprobs": {
+              "A": 15.9375,
+              "B": 15.0625,
+              "C": 14.375,
+              "D": 16.375
+            }
+          },
+          {
+            "step_percentage": 20,
+            "token_index": 227,
+            "logprobs": {
+              "A": 19.375,
+              "B": 14.75,
+              "C": 11.625,
+              "D": 15.75
+            }
+          },
+          {
+            "step_percentage": 30,
+            "token_index": 340,
+            "logprobs": {
+              "A": 18.875,
+              "B": 20.25,
+              "C": 14.5,
+              "D": 18.0
+            }
+          },
+          {
+            "step_percentage": 40,
+            "token_index": 454,
+            "logprobs": {
+              "A": 17.875,
+              "B": 18.25,
+              "C": 15.75,
+              "D": 17.375
+            }
+          },
+          {
+            "step_percentage": 50,
+            "token_index": 567,
+            "logprobs": {
+              "A": 20.25,
+              "B": 21.625,
+              "C": 16.125,
+              "D": 19.875
+            }
+          },
+          {
+            "step_percentage": 60,
+            "token_index": 680,
+            "logprobs": {
+              "A": 20.5,
+              "B": 20.375,
+              "C": 14.8125,
+              "D": 18.25
+            }
+          },
+          {
+            "step_percentage": 70,
+            "token_index": 794,
+            "logprobs": {
+              "A": 21.125,
+              "B": 21.875,
+              "C": 15.9375,
+              "D": 18.875
+            }
+          },
+          {
+            "step_percentage": 80,
+            "token_index": 907,
+            "logprobs": {
+              "A": 21.375,
+              "B": 21.5,
+              "C": 16.0,
+              "D": 18.375
+            }
+          },
+          {
+            "step_percentage": 90,
+            "token_index": 1020,
+            "logprobs": {
+              "A": 22.5,
+              "B": 21.0,
+              "C": 15.375,
+              "D": 18.5
+            }
+          },
+          {
+            "step_percentage": 100,
+            "token_index": 1133,
+            "logprobs": {
+              "A": 22.75,
+              "B": 16.875,
+              "C": 13.75,
+              "D": 15.0
+            }
+          }
+        ]
+      },
+      "dots_eot": {
+        "reasoning_tokens": 1133,
+        "logprobs_sequence": [
+          {
+            "step_percentage": 10,
+            "token_index": 114,
+            "logprobs": {
+              "A": 20.25,
+              "B": 22.375,
+              "C": 16.625,
+              "D": 19.5
+            }
+          },
+          {
+            "step_percentage": 20,
+            "token_index": 227,
+            "logprobs": {
+              "A": 21.625,
+              "B": 22.125,
+              "C": 16.0,
+              "D": 20.375
+            }
+          },
+          {
+            "step_percentage": 30,
+            "token_index": 340,
+            "logprobs": {
+              "A": 22.375,
+              "B": 22.625,
+              "C": 16.0,
+              "D": 20.5
+            }
+          },
+          {
+            "step_percentage": 40,
+            "token_index": 454,
+            "logprobs": {
+              "A": 21.875,
+              "B": 22.875,
+              "C": 17.125,
+              "D": 20.875
+            }
+          },
+          {
+            "step_percentage": 50,
+            "token_index": 567,
+            "logprobs": {
+              "A": 22.5,
+              "B": 23.5,
+              "C": 16.75,
+              "D": 20.75
+            }
+          },
+          {
+            "step_percentage": 60,
+            "token_index": 680,
+            "logprobs": {
+              "A": 23.375,
+              "B": 22.875,
+              "C": 16.875,
+              "D": 19.875
+            }
+          },
+          {
+            "step_percentage": 70,
+            "token_index": 794,
+            "logprobs": {
+              "A": 23.0,
+              "B": 23.625,
+              "C": 17.0,
+              "D": 19.875
+            }
+          },
+          {
+            "step_percentage": 80,
+            "token_index": 907,
+            "logprobs": {
+              "A": 24.5,
+              "B": 22.5,
+              "C": 17.125,
+              "D": 19.125
+            }
+          },
+          {
+            "step_percentage": 90,
+            "token_index": 1020,
+            "logprobs": {
+              "A": 25.0,
+              "B": 22.75,
+              "C": 16.625,
+              "D": 18.625
+            }
+          },
+          {
+            "step_percentage": 100,
+            "token_index": 1133,
+            "logprobs": {
+              "A": 25.0,
+              "B": 19.875,
+              "C": 15.75,
+              "D": 17.0
+            }
+          }
+        ]
+      }
+    },
+    "32": {
+      "dots": {
+        "reasoning_tokens": 990,
+        "logprobs_sequence": [
+          {
+            "step_percentage": 10,
+            "token_index": 99,
+            "logprobs": {
+              "A": 16.875,
+              "B": 14.25,
+              "C": 14.9375,
+              "D": 17.5
+            }
+          },
+          {
+            "step_percentage": 20,
+            "token_index": 198,
+            "logprobs": {
+              "A": 18.875,
+              "B": 12.0625,
+              "C": 12.6875,
+              "D": 15.6875
+            }
+          },
+          {
+            "step_percentage": 30,
+            "token_index": 297,
+            "logprobs": {
+              "A": 17.625,
+              "B": 14.375,
+              "C": 14.875,
+              "D": 17.5
+            }
+          },
+          {
+            "step_percentage": 40,
+            "token_index": 396,
+            "logprobs": {
+              "A": 15.875,
+              "B": 11.5625,
+              "C": 15.0625,
+              "D": 18.875
+            }
+          },
+          {
+            "step_percentage": 50,
+            "token_index": 495,
+            "logprobs": {
+              "A": 18.25,
+              "B": 13.0625,
+              "C": 14.625,
+              "D": 17.75
+            }
+          },
+          {
+            "step_percentage": 60,
+            "token_index": 594,
+            "logprobs": {
+              "A": 18.125,
+              "B": 13.3125,
+              "C": 16.125,
+              "D": 18.375
+            }
+          },
+          {
+            "step_percentage": 70,
+            "token_index": 693,
+            "logprobs": {
+              "A": 18.75,
+              "B": 14.5,
+              "C": 17.625,
+              "D": 19.125
+            }
+          },
+          {
+            "step_percentage": 80,
+            "token_index": 792,
+            "logprobs": {
+              "A": 19.0,
+              "B": 15.3125,
+              "C": 21.0,
+              "D": 18.0
+            }
+          },
+          {
+            "step_percentage": 90,
+            "token_index": 891,
+            "logprobs": {
+              "A": 18.75,
+              "B": 14.8125,
+              "C": 20.0,
+              "D": 18.625
+            }
+          },
+          {
+            "step_percentage": 100,
+            "token_index": 990,
+            "logprobs": {
+              "A": 17.0,
+              "B": 15.0,
+              "C": 22.625,
+              "D": 15.5625
+            }
+          }
+        ]
+      },
+      "dots_eot": {
+        "reasoning_tokens": 990,
+        "logprobs_sequence": [
+          {
+            "step_percentage": 10,
+            "token_index": 99,
+            "logprobs": {
+              "A": 21.625,
+              "B": 16.75,
+              "C": 17.5,
+              "D": 21.75
+            }
+          },
+          {
+            "step_percentage": 20,
+            "token_index": 198,
+            "logprobs": {
+              "A": 21.5,
+              "B": 15.375,
+              "C": 16.5,
+              "D": 21.25
+            }
+          },
+          {
+            "step_percentage": 30,
+            "token_index": 297,
+            "logprobs": {
+              "A": 22.375,
+              "B": 16.375,
+              "C": 17.0,
+              "D": 22.25
+            }
+          },
+          {
+            "step_percentage": 40,
+            "token_index": 396,
+            "logprobs": {
+              "A": 19.625,
+              "B": 15.125,
+              "C": 19.875,
+              "D": 21.0
+            }
+          },
+          {
+            "step_percentage": 50,
+            "token_index": 495,
+            "logprobs": {
+              "A": 21.375,
+              "B": 15.875,
+              "C": 17.875,
+              "D": 21.75
+            }
+          },
+          {
+            "step_percentage": 60,
+            "token_index": 594,
+            "logprobs": {
+              "A": 20.375,
+              "B": 15.75,
+              "C": 22.375,
+              "D": 20.25
+            }
+          },
+          {
+            "step_percentage": 70,
+            "token_index": 693,
+            "logprobs": {
+              "A": 20.625,
+              "B": 16.5,
+              "C": 23.375,
+              "D": 20.0
+            }
+          },
+          {
+            "step_percentage": 80,
+            "token_index": 792,
+            "logprobs": {
+              "A": 20.125,
+              "B": 17.125,
+              "C": 24.5,
+              "D": 18.25
+            }
+          },
+          {
+            "step_percentage": 90,
+            "token_index": 891,
+            "logprobs": {
+              "A": 19.25,
+              "B": 17.125,
+              "C": 24.75,
+              "D": 17.625
+            }
+          },
+          {
+            "step_percentage": 100,
+            "token_index": 990,
+            "logprobs": {
+              "A": 17.875,
+              "B": 17.0,
+              "C": 25.5,
+              "D": 16.25
+            }
+          }
+        ]
+      }
+    },
+    "34": {
+      "dots": {
+        "reasoning_tokens": 298,
+        "logprobs_sequence": [
+          {
+            "step_percentage": 10,
+            "token_index": 30,
+            "logprobs": {
+              "A": 17.5,
+              "B": 16.5,
+              "C": 16.25,
+              "D": 16.375
+            }
+          },
+          {
+            "step_percentage": 20,
+            "token_index": 60,
+            "logprobs": {
+              "A": 18.25,
+              "B": 17.625,
+              "C": 16.125,
+              "D": 15.3125
+            }
+          },
+          {
+            "step_percentage": 30,
+            "token_index": 90,
+            "logprobs": {
+              "A": 17.0,
+              "B": 16.25,
+              "C": 14.5625,
+              "D": 14.125
+            }
+          },
+          {
+            "step_percentage": 40,
+            "token_index": 120,
+            "logprobs": {
+              "A": 18.0,
+              "B": 16.25,
+              "C": 14.75,
+              "D": 13.75
+            }
+          },
+          {
+            "step_percentage": 50,
+            "token_index": 149,
+            "logprobs": {
+              "A": 18.0,
+              "B": 15.0,
+              "C": 13.5,
+              "D": 11.5
+            }
+          },
+          {
+            "step_percentage": 60,
+            "token_index": 179,
+            "logprobs": {
+              "A": 18.125,
+              "B": 15.9375,
+              "C": 13.8125,
+              "D": 11.6875
+            }
+          },
+          {
+            "step_percentage": 70,
+            "token_index": 209,
+            "logprobs": {
+              "A": 18.5,
+              "B": 12.875,
+              "C": 14.0,
+              "D": 11.625
+            }
+          },
+          {
+            "step_percentage": 80,
+            "token_index": 239,
+            "logprobs": {
+              "A": 17.875,
+              "B": 14.625,
+              "C": 14.5,
+              "D": 14.125
+            }
+          },
+          {
+            "step_percentage": 90,
+            "token_index": 269,
+            "logprobs": {
+              "A": 22.5,
+              "B": 15.6875,
+              "C": 14.1875,
+              "D": 12.875
+            }
+          },
+          {
+            "step_percentage": 100,
+            "token_index": 298,
+            "logprobs": {
+              "A": 21.375,
+              "B": 11.75,
+              "C": 12.3125,
+              "D": 10.625
+            }
+          }
+        ]
+      },
+      "dots_eot": {
+        "reasoning_tokens": 298,
+        "logprobs_sequence": [
+          {
+            "step_percentage": 10,
+            "token_index": 30,
+            "logprobs": {
+              "A": 19.625,
+              "B": 20.125,
+              "C": 18.0,
+              "D": 17.125
+            }
+          },
+          {
+            "step_percentage": 20,
+            "token_index": 60,
+            "logprobs": {
+              "A": 19.625,
+              "B": 20.625,
+              "C": 18.25,
+              "D": 17.125
+            }
+          },
+          {
+            "step_percentage": 30,
+            "token_index": 90,
+            "logprobs": {
+              "A": 19.625,
+              "B": 21.25,
+              "C": 18.125,
+              "D": 17.125
+            }
+          },
+          {
+            "step_percentage": 40,
+            "token_index": 120,
+            "logprobs": {
+              "A": 21.5,
+              "B": 20.625,
+              "C": 17.25,
+              "D": 15.9375
+            }
+          },
+          {
+            "step_percentage": 50,
+            "token_index": 149,
+            "logprobs": {
+              "A": 23.25,
+              "B": 15.9375,
+              "C": 14.6875,
+              "D": 12.875
+            }
+          },
+          {
+            "step_percentage": 60,
+            "token_index": 179,
+            "logprobs": {
+              "A": 23.0,
+              "B": 15.25,
+              "C": 13.625,
+              "D": 11.625
+            }
+          },
+          {
+            "step_percentage": 70,
+            "token_index": 209,
+            "logprobs": {
+              "A": 23.625,
+              "B": 14.375,
+              "C": 15.1875,
+              "D": 12.3125
+            }
+          },
+          {
+            "step_percentage": 80,
+            "token_index": 239,
+            "logprobs": {
+              "A": 23.375,
+              "B": 14.9375,
+              "C": 14.8125,
+              "D": 13.25
+            }
+          },
+          {
+            "step_percentage": 90,
+            "token_index": 269,
+            "logprobs": {
+              "A": 23.875,
+              "B": 14.5625,
+              "C": 14.5,
+              "D": 12.4375
+            }
+          },
+          {
+            "step_percentage": 100,
+            "token_index": 298,
+            "logprobs": {
+              "A": 23.375,
+              "B": 13.0625,
+              "C": 14.0625,
+              "D": 12.5
+            }
+          }
+        ]
+      }
+    }
+  }
+}
