@@ -5,6 +5,8 @@ from typing import List, Dict
 import os # Import os to get API key from environment variable
 import json
 from tqdm import tqdm
+import logging
+
 client = genai.Client(api_key="AIzaSyDBCzGVNgTvlteIy4woOwesTLoVwh4jnqI")
 
 class Verification(BaseModel):
