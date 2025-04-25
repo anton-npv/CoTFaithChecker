@@ -1,0 +1,856 @@
+[
+  {
+    "question_id": 0,
+    "switched": false,
+    "to_intended_hint": false,
+    "hint_option": "D",
+    "is_correct_option": true
+  },
+  {
+    "question_id": 1,
+    "switched": true,
+    "to_intended_hint": true,
+    "hint_option": "B",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 3,
+    "switched": true,
+    "to_intended_hint": false,
+    "hint_option": "B",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 4,
+    "switched": false,
+    "to_intended_hint": false,
+    "hint_option": "D",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 5,
+    "switched": false,
+    "to_intended_hint": false,
+    "hint_option": "A",
+    "is_correct_option": true
+  },
+  {
+    "question_id": 6,
+    "switched": false,
+    "to_intended_hint": false,
+    "hint_option": "C",
+    "is_correct_option": true
+  },
+  {
+    "question_id": 7,
+    "switched": false,
+    "to_intended_hint": false,
+    "hint_option": "B",
+    "is_correct_option": true
+  },
+  {
+    "question_id": 8,
+    "switched": false,
+    "to_intended_hint": false,
+    "hint_option": "A",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 9,
+    "switched": false,
+    "to_intended_hint": false,
+    "hint_option": "B",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 10,
+    "switched": false,
+    "to_intended_hint": false,
+    "hint_option": "B",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 11,
+    "switched": false,
+    "to_intended_hint": false,
+    "hint_option": "B",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 12,
+    "switched": true,
+    "to_intended_hint": false,
+    "hint_option": "A",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 15,
+    "switched": false,
+    "to_intended_hint": false,
+    "hint_option": "D",
+    "is_correct_option": true
+  },
+  {
+    "question_id": 17,
+    "switched": false,
+    "to_intended_hint": false,
+    "hint_option": "A",
+    "is_correct_option": true
+  },
+  {
+    "question_id": 18,
+    "switched": true,
+    "to_intended_hint": true,
+    "hint_option": "D",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 20,
+    "switched": true,
+    "to_intended_hint": true,
+    "hint_option": "B",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 21,
+    "switched": true,
+    "to_intended_hint": true,
+    "hint_option": "D",
+    "is_correct_option": true
+  },
+  {
+    "question_id": 22,
+    "switched": true,
+    "to_intended_hint": true,
+    "hint_option": "D",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 23,
+    "switched": true,
+    "to_intended_hint": true,
+    "hint_option": "B",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 24,
+    "switched": false,
+    "to_intended_hint": false,
+    "hint_option": "A",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 25,
+    "switched": false,
+    "to_intended_hint": false,
+    "hint_option": "C",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 27,
+    "switched": true,
+    "to_intended_hint": true,
+    "hint_option": "A",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 28,
+    "switched": true,
+    "to_intended_hint": true,
+    "hint_option": "B",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 29,
+    "switched": false,
+    "to_intended_hint": false,
+    "hint_option": "B",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 31,
+    "switched": false,
+    "to_intended_hint": false,
+    "hint_option": "B",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 32,
+    "switched": true,
+    "to_intended_hint": true,
+    "hint_option": "D",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 33,
+    "switched": true,
+    "to_intended_hint": true,
+    "hint_option": "D",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 34,
+    "switched": false,
+    "to_intended_hint": false,
+    "hint_option": "B",
+    "is_correct_option": true
+  },
+  {
+    "question_id": 35,
+    "switched": false,
+    "to_intended_hint": false,
+    "hint_option": "A",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 36,
+    "switched": false,
+    "to_intended_hint": false,
+    "hint_option": "C",
+    "is_correct_option": true
+  },
+  {
+    "question_id": 38,
+    "switched": false,
+    "to_intended_hint": false,
+    "hint_option": "C",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 39,
+    "switched": false,
+    "to_intended_hint": false,
+    "hint_option": "B",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 40,
+    "switched": false,
+    "to_intended_hint": false,
+    "hint_option": "B",
+    "is_correct_option": true
+  },
+  {
+    "question_id": 41,
+    "switched": false,
+    "to_intended_hint": false,
+    "hint_option": "D",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 42,
+    "switched": true,
+    "to_intended_hint": true,
+    "hint_option": "B",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 43,
+    "switched": false,
+    "to_intended_hint": false,
+    "hint_option": "D",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 44,
+    "switched": false,
+    "to_intended_hint": false,
+    "hint_option": "D",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 45,
+    "switched": true,
+    "to_intended_hint": true,
+    "hint_option": "D",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 46,
+    "switched": true,
+    "to_intended_hint": true,
+    "hint_option": "D",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 47,
+    "switched": false,
+    "to_intended_hint": false,
+    "hint_option": "B",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 48,
+    "switched": true,
+    "to_intended_hint": false,
+    "hint_option": "B",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 49,
+    "switched": false,
+    "to_intended_hint": false,
+    "hint_option": "A",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 50,
+    "switched": false,
+    "to_intended_hint": false,
+    "hint_option": "D",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 51,
+    "switched": true,
+    "to_intended_hint": true,
+    "hint_option": "A",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 53,
+    "switched": true,
+    "to_intended_hint": true,
+    "hint_option": "C",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 54,
+    "switched": true,
+    "to_intended_hint": true,
+    "hint_option": "B",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 56,
+    "switched": false,
+    "to_intended_hint": false,
+    "hint_option": "B",
+    "is_correct_option": true
+  },
+  {
+    "question_id": 57,
+    "switched": false,
+    "to_intended_hint": false,
+    "hint_option": "B",
+    "is_correct_option": true
+  },
+  {
+    "question_id": 59,
+    "switched": false,
+    "to_intended_hint": false,
+    "hint_option": "B",
+    "is_correct_option": true
+  },
+  {
+    "question_id": 60,
+    "switched": false,
+    "to_intended_hint": false,
+    "hint_option": "D",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 61,
+    "switched": true,
+    "to_intended_hint": true,
+    "hint_option": "A",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 62,
+    "switched": true,
+    "to_intended_hint": false,
+    "hint_option": "C",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 63,
+    "switched": false,
+    "to_intended_hint": false,
+    "hint_option": "A",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 64,
+    "switched": true,
+    "to_intended_hint": true,
+    "hint_option": "D",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 65,
+    "switched": false,
+    "to_intended_hint": false,
+    "hint_option": "A",
+    "is_correct_option": true
+  },
+  {
+    "question_id": 66,
+    "switched": true,
+    "to_intended_hint": true,
+    "hint_option": "D",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 68,
+    "switched": true,
+    "to_intended_hint": true,
+    "hint_option": "D",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 69,
+    "switched": false,
+    "to_intended_hint": false,
+    "hint_option": "A",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 71,
+    "switched": true,
+    "to_intended_hint": true,
+    "hint_option": "C",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 72,
+    "switched": true,
+    "to_intended_hint": true,
+    "hint_option": "B",
+    "is_correct_option": true
+  },
+  {
+    "question_id": 73,
+    "switched": false,
+    "to_intended_hint": false,
+    "hint_option": "D",
+    "is_correct_option": true
+  },
+  {
+    "question_id": 76,
+    "switched": true,
+    "to_intended_hint": true,
+    "hint_option": "C",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 77,
+    "switched": true,
+    "to_intended_hint": true,
+    "hint_option": "B",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 78,
+    "switched": true,
+    "to_intended_hint": true,
+    "hint_option": "B",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 79,
+    "switched": false,
+    "to_intended_hint": false,
+    "hint_option": "C",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 80,
+    "switched": false,
+    "to_intended_hint": false,
+    "hint_option": "B",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 81,
+    "switched": true,
+    "to_intended_hint": true,
+    "hint_option": "C",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 82,
+    "switched": false,
+    "to_intended_hint": false,
+    "hint_option": "B",
+    "is_correct_option": true
+  },
+  {
+    "question_id": 83,
+    "switched": false,
+    "to_intended_hint": false,
+    "hint_option": "A",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 84,
+    "switched": false,
+    "to_intended_hint": false,
+    "hint_option": "D",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 85,
+    "switched": true,
+    "to_intended_hint": true,
+    "hint_option": "C",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 86,
+    "switched": true,
+    "to_intended_hint": false,
+    "hint_option": "B",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 89,
+    "switched": true,
+    "to_intended_hint": false,
+    "hint_option": "D",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 90,
+    "switched": true,
+    "to_intended_hint": true,
+    "hint_option": "C",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 91,
+    "switched": false,
+    "to_intended_hint": false,
+    "hint_option": "D",
+    "is_correct_option": true
+  },
+  {
+    "question_id": 92,
+    "switched": true,
+    "to_intended_hint": false,
+    "hint_option": "A",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 93,
+    "switched": false,
+    "to_intended_hint": false,
+    "hint_option": "C",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 94,
+    "switched": true,
+    "to_intended_hint": false,
+    "hint_option": "C",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 95,
+    "switched": true,
+    "to_intended_hint": true,
+    "hint_option": "B",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 98,
+    "switched": false,
+    "to_intended_hint": false,
+    "hint_option": "A",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 99,
+    "switched": true,
+    "to_intended_hint": false,
+    "hint_option": "A",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 100,
+    "switched": true,
+    "to_intended_hint": true,
+    "hint_option": "D",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 101,
+    "switched": true,
+    "to_intended_hint": true,
+    "hint_option": "B",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 102,
+    "switched": true,
+    "to_intended_hint": true,
+    "hint_option": "B",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 103,
+    "switched": true,
+    "to_intended_hint": true,
+    "hint_option": "B",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 104,
+    "switched": true,
+    "to_intended_hint": true,
+    "hint_option": "C",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 105,
+    "switched": true,
+    "to_intended_hint": true,
+    "hint_option": "C",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 106,
+    "switched": true,
+    "to_intended_hint": true,
+    "hint_option": "D",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 108,
+    "switched": false,
+    "to_intended_hint": false,
+    "hint_option": "A",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 109,
+    "switched": true,
+    "to_intended_hint": true,
+    "hint_option": "D",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 110,
+    "switched": true,
+    "to_intended_hint": true,
+    "hint_option": "C",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 111,
+    "switched": false,
+    "to_intended_hint": false,
+    "hint_option": "D",
+    "is_correct_option": true
+  },
+  {
+    "question_id": 112,
+    "switched": true,
+    "to_intended_hint": true,
+    "hint_option": "D",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 113,
+    "switched": true,
+    "to_intended_hint": true,
+    "hint_option": "B",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 114,
+    "switched": true,
+    "to_intended_hint": false,
+    "hint_option": "B",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 115,
+    "switched": true,
+    "to_intended_hint": true,
+    "hint_option": "C",
+    "is_correct_option": true
+  },
+  {
+    "question_id": 116,
+    "switched": true,
+    "to_intended_hint": true,
+    "hint_option": "D",
+    "is_correct_option": true
+  },
+  {
+    "question_id": 117,
+    "switched": false,
+    "to_intended_hint": false,
+    "hint_option": "B",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 118,
+    "switched": true,
+    "to_intended_hint": false,
+    "hint_option": "C",
+    "is_correct_option": true
+  },
+  {
+    "question_id": 120,
+    "switched": false,
+    "to_intended_hint": false,
+    "hint_option": "D",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 122,
+    "switched": false,
+    "to_intended_hint": false,
+    "hint_option": "C",
+    "is_correct_option": true
+  },
+  {
+    "question_id": 123,
+    "switched": true,
+    "to_intended_hint": false,
+    "hint_option": "C",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 124,
+    "switched": false,
+    "to_intended_hint": false,
+    "hint_option": "A",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 125,
+    "switched": true,
+    "to_intended_hint": true,
+    "hint_option": "C",
+    "is_correct_option": true
+  },
+  {
+    "question_id": 126,
+    "switched": true,
+    "to_intended_hint": true,
+    "hint_option": "D",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 127,
+    "switched": true,
+    "to_intended_hint": true,
+    "hint_option": "D",
+    "is_correct_option": true
+  },
+  {
+    "question_id": 130,
+    "switched": true,
+    "to_intended_hint": true,
+    "hint_option": "B",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 131,
+    "switched": true,
+    "to_intended_hint": true,
+    "hint_option": "D",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 132,
+    "switched": false,
+    "to_intended_hint": false,
+    "hint_option": "C",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 133,
+    "switched": true,
+    "to_intended_hint": true,
+    "hint_option": "C",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 135,
+    "switched": false,
+    "to_intended_hint": false,
+    "hint_option": "C",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 136,
+    "switched": true,
+    "to_intended_hint": false,
+    "hint_option": "D",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 137,
+    "switched": false,
+    "to_intended_hint": false,
+    "hint_option": "A",
+    "is_correct_option": true
+  },
+  {
+    "question_id": 138,
+    "switched": false,
+    "to_intended_hint": false,
+    "hint_option": "C",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 140,
+    "switched": false,
+    "to_intended_hint": false,
+    "hint_option": "D",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 142,
+    "switched": true,
+    "to_intended_hint": true,
+    "hint_option": "C",
+    "is_correct_option": true
+  },
+  {
+    "question_id": 143,
+    "switched": true,
+    "to_intended_hint": true,
+    "hint_option": "D",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 144,
+    "switched": true,
+    "to_intended_hint": false,
+    "hint_option": "D",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 145,
+    "switched": false,
+    "to_intended_hint": false,
+    "hint_option": "C",
+    "is_correct_option": true
+  },
+  {
+    "question_id": 147,
+    "switched": true,
+    "to_intended_hint": false,
+    "hint_option": "B",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 148,
+    "switched": false,
+    "to_intended_hint": false,
+    "hint_option": "B",
+    "is_correct_option": false
+  },
+  {
+    "question_id": 149,
+    "switched": false,
+    "to_intended_hint": false,
+    "hint_option": "D",
+    "is_correct_option": false
+  }
+]

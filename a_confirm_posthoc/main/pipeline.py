@@ -6,8 +6,8 @@ import logging
 import time # For timing
 
 # Assuming utils are in the same directory or PYTHONPATH is set correctly
-from a_confirm_posthoc.src.utils.prompt_constructor import construct_prompt
-from a_confirm_posthoc.src.utils.model_handler import generate_completion, load_model_and_tokenizer
+from a_confirm_posthoc.utils.prompt_constructor import construct_prompt
+from a_confirm_posthoc.utils.model_handler import generate_completion, load_model_and_tokenizer
 
 # Setup basic logging (optional, but good practice)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
