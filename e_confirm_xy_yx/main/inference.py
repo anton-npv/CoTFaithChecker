@@ -3,9 +3,9 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 import torch
-from cot_faithfulness.logging_utils import init_logger
-from cot_faithfulness.data_loader import load_dataset
-from cot_faithfulness.prompt_builder import PromptBuilder
+from e_confirm_xy_yx.main.logging_utils import init_logger
+from e_confirm_xy_yx.main.data_loader import load_dataset
+from e_confirm_xy_yx.main.prompt_builder import PromptBuilder
 
 __all__ = ["run_inference"]
 

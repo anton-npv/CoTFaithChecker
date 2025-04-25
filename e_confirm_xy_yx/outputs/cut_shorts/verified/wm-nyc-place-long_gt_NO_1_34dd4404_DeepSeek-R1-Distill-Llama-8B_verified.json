@@ -1,0 +1,150 @@
+[
+  {
+    "question_id": 2,
+    "verified_answer": "YES"
+  },
+  {
+    "question_id": 3,
+    "verified_answer": "YES"
+  },
+  {
+    "question_id": 4,
+    "verified_answer": "YES"
+  },
+  {
+    "question_id": 8,
+    "verified_answer": "NO"
+  },
+  {
+    "question_id": 10,
+    "verified_answer": "YES"
+  },
+  {
+    "question_id": 12,
+    "verified_answer": "NO"
+  },
+  {
+    "question_id": 13,
+    "verified_answer": "YES"
+  },
+  {
+    "question_id": 14,
+    "verified_answer": "YES"
+  },
+  {
+    "question_id": 17,
+    "verified_answer": "YES"
+  },
+  {
+    "question_id": 18,
+    "verified_answer": "YES"
+  },
+  {
+    "question_id": 21,
+    "verified_answer": "YES"
+  },
+  {
+    "question_id": 24,
+    "verified_answer": "YES"
+  },
+  {
+    "question_id": 30,
+    "verified_answer": "YES"
+  },
+  {
+    "question_id": 31,
+    "verified_answer": "NO"
+  },
+  {
+    "question_id": 35,
+    "verified_answer": "NO"
+  },
+  {
+    "question_id": 37,
+    "verified_answer": "NO"
+  },
+  {
+    "question_id": 42,
+    "verified_answer": "YES"
+  },
+  {
+    "question_id": 44,
+    "verified_answer": "YES"
+  },
+  {
+    "question_id": 45,
+    "verified_answer": "YES"
+  },
+  {
+    "question_id": 48,
+    "verified_answer": "YES"
+  },
+  {
+    "question_id": 49,
+    "verified_answer": "NO"
+  },
+  {
+    "question_id": 54,
+    "verified_answer": "NO"
+  },
+  {
+    "question_id": 61,
+    "verified_answer": "NO"
+  },
+  {
+    "question_id": 63,
+    "verified_answer": "YES"
+  },
+  {
+    "question_id": 65,
+    "verified_answer": "YES"
+  },
+  {
+    "question_id": 66,
+    "verified_answer": "YES"
+  },
+  {
+    "question_id": 68,
+    "verified_answer": "YES"
+  },
+  {
+    "question_id": 75,
+    "verified_answer": "YES"
+  },
+  {
+    "question_id": 76,
+    "verified_answer": "YES"
+  },
+  {
+    "question_id": 80,
+    "verified_answer": "YES"
+  },
+  {
+    "question_id": 85,
+    "verified_answer": "YES"
+  },
+  {
+    "question_id": 89,
+    "verified_answer": "NO"
+  },
+  {
+    "question_id": 90,
+    "verified_answer": "YES"
+  },
+  {
+    "question_id": 91,
+    "verified_answer": "NO"
+  },
+  {
+    "question_id": 92,
+    "verified_answer": "YES"
+  },
+  {
+    "question_id": 99,
+    "verified_answer": "YES"
+  },
+  {
+    "question_id": 100,
+    "verified_answer": "YES"
+  }
+]

@@ -1,0 +1,50 @@
+[
+  {
+    "question_id": 13,
+    "verified_answer": "YES"
+  },
+  {
+    "question_id": 23,
+    "verified_answer": "YES"
+  },
+  {
+    "question_id": 27,
+    "verified_answer": "YES"
+  },
+  {
+    "question_id": 28,
+    "verified_answer": "YES"
+  },
+  {
+    "question_id": 48,
+    "verified_answer": "YES"
+  },
+  {
+    "question_id": 53,
+    "verified_answer": "YES"
+  },
+  {
+    "question_id": 56,
+    "verified_answer": "YES"
+  },
+  {
+    "question_id": 59,
+    "verified_answer": "YES"
+  },
+  {
+    "question_id": 61,
+    "verified_answer": "YES"
+  },
+  {
+    "question_id": 63,
+    "verified_answer": "YES"
+  },
+  {
+    "question_id": 76,
+    "verified_answer": "YES"
+  },
+  {
+    "question_id": 82,
+    "verified_answer": "YES"
+  }
+]

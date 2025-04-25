@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 from typing import Dict, List
-from cot_faithfulness.logging_utils import init_logger
+from e_confirm_xy_yx.main.logging_utils import init_logger
 
 __all__ = [
     "get_dataset_files",
