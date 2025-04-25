@@ -1,45 +1,168 @@
-import os
 import json
-import logging
-from tqdm import tqdm
+from pathlib import Path
+from typing import Dict, List, Optional
 
-def setup_logging(log_dir: str, log_file: str):
-    log_path = os.path.join(log_dir, log_file)
-    logging.basicConfig(filename=log_path, level=logging.INFO)
-    logging.info("Logging initialized.")
+import torch
+from cot_faithfulness.logging_utils import init_logger
+from cot_faithfulness.data_loader import load_dataset
+from cot_faithfulness.prompt_builder import PromptBuilder
 
-def run_inference(model, tokenizer, device, dataset_name, data_types, batch_size, max_new_tokens, output_dir, log_file):
-    # Setup logging
-    setup_logging(output_dir, log_file)
-    
-    results = []
-    
-    for data_type in data_types:
-        data = fetch_data('data/chainscope/questions_json', *data_type)
-        
-        for question_data in tqdm(data, desc=f"Processing {data_type} data"):
-            question = question_data["questions"][0]  # Get the first question
-            prompt = construct_prompt("data/chainscope/templates/instructions.json", question, "instr-v0")
-            
-            inputs = tokenizer(prompt, return_tensors="pt").to(device)
-            
-            with torch.no_grad():
-                output = model.generate(**inputs, max_length=max_new_tokens)
-            
-            answer = tokenizer.decode(output[0], skip_special_tokens=True)
-            
-            # Save the result
-            result = {
-                'question_id': question['question_id'],
-                'completion': answer,
-                'yes_question_id': question['yes_question_id'] if 'yes_question_id' in question else None,
-                'no_question_id': question['no_question_id'] if 'no_question_id' in question else None
-            }
-            results.append(result)
+__all__ = ["run_inference"]
 
-        # Save results to file
-        result_path = os.path.join(output_dir, f"{dataset_name}_completions_{data_type}.json")
-        with open(result_path, 'w') as f:
-            json.dump(results, f, indent=2)
-    
-    return results
+logger = init_logger(Path.cwd() / "logs", "inference")
+
+
+def _save_hidden_or_attention(tensor_list: List[torch.Tensor], out_file: Path):
+    """
+    Utility for serialising tensors.
+    """
+    torch.save(tensor_list, out_file)
+    logger.info(f"Saved tensor list → {out_file}")
+
+
+def _generate(
+    model,
+    tokenizer,
+    prompts: List[str],
+    device: torch.device,
+    max_new_tokens: Optional[int],
+    save_hidden: bool,
+    hidden_layers: List[int],
+    save_attention: bool,
+    attn_layers: List[int],
+) -> Dict:
+    """
+    Core batched generation, keeping hidden/attention if requested.
+    No try/except: any failure stops the run and will be visible in the notebook & log.
+    """
+    encodings = tokenizer(prompts, return_tensors="pt", padding=True).to(device)
+    with torch.no_grad():
+        outputs = model.generate(
+            **encodings,
+            max_new_tokens=max_new_tokens,
+            output_hidden_states=save_hidden,
+            output_attentions=save_attention,
+            return_dict_in_generate=True,
+        )
+
+    completions = tokenizer.batch_decode(outputs.sequences, skip_special_tokens=True)
+
+    extra = {}
+    if save_hidden:
+        hidden = [
+            [outputs.hidden_states[i][layer].cpu() for layer in hidden_layers]
+            for i in range(len(prompts))
+        ]
+        extra["hidden"] = hidden
+    if save_attention:
+        atts = [
+            [outputs.attentions[i][layer].cpu() for layer in attn_layers]
+            for i in range(len(prompts))
+        ]
+        extra["attention"] = atts
+
+    return {"completions": completions, **extra}
+
+
+def _process_single_file(
+    json_path: Path,
+    prompt_builder: PromptBuilder,
+    model,
+    tokenizer,
+    model_name: str,
+    device: torch.device,
+    batch_size: int,
+    max_new_tokens: Optional[int],
+    save_hidden: bool,
+    hidden_layers: List[int],
+    save_attention: bool,
+    attn_layers: List[int],
+    output_dir: Path,
+) -> Path:
+    """
+    Process one dataset JSON; write a *completion* JSON next to it and return its Path.
+    """
+    logger.info(f"Processing {json_path.name}")
+    data = load_dataset(json_path)
+    questions: List[Dict] = data["questions"]
+
+    prompts = prompt_builder.batch([q["q_str"] for q in questions])
+
+    # Batch-wise generation
+    completions: List[str] = []
+    for i in range(0, len(prompts), batch_size):
+        batch_prompts = prompts[i : i + batch_size]
+        gen_out = _generate(
+            model,
+            tokenizer,
+            batch_prompts,
+            device,
+            max_new_tokens,
+            save_hidden,
+            hidden_layers,
+            save_attention,
+            attn_layers,
+        )
+        completions.extend(gen_out["completions"])
+
+        # optionals
+        if save_hidden:
+            out_hidden = output_dir / f"{json_path.stem}_hidden.pt"
+            _save_hidden_or_attention(gen_out["hidden"], out_hidden)
+        if save_attention:
+            out_attn = output_dir / f"{json_path.stem}_attn.pt"
+            _save_hidden_or_attention(gen_out["attention"], out_attn)
+
+    output_records = []
+    for q, comp in zip(questions, completions):
+        entry = {
+            "question_id": q["question_id"],
+            "completion": comp,
+        }
+        # keep cross-link IDs
+        if "yes_question_id" in q:
+            entry["yes_question_id"] = q["yes_question_id"]
+        if "no_question_id" in q:
+            entry["no_question_id"] = q["no_question_id"]
+        output_records.append(entry)
+
+    fname = f"{json_path.stem}_{model_name}_completions.json"
+    out_path = output_dir / fname
+    with out_path.open("w") as f:
+        json.dump(output_records, f, indent=2)
+    logger.info(f"Saved completions → {out_path}")
+    return out_path
+
+
+def run_inference(
+    dataset_files: List[Path],
+    prompt_builder: PromptBuilder,
+    model,
+    tokenizer,
+    model_name: str,
+    device: torch.device,
+    batch_size: int,
+    max_new_tokens: Optional[int],
+    save_hidden: bool,
+    hidden_layers: List[int],
+    save_attention: bool,
+    attn_layers: List[int],
+    output_dir: Path,
+):
+    output_dir.mkdir(parents=True, exist_ok=True)
+    for fp in dataset_files:
+        _process_single_file(
+            fp,
+            prompt_builder,
+            model,
+            tokenizer,
+            model_name,
+            device,
+            batch_size,
+            max_new_tokens,
+            save_hidden,
+            hidden_layers,
+            save_attention,
+            attn_layers,
+            output_dir,
+        )
