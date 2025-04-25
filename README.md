@@ -46,3 +46,8 @@ We are investigating CoT Unfaithfulness - why does a model write untruthful/unre
 ```
 
 (note: sudo apt update && sudo apt install tree)
+
+## Data
+
+- MMLU  
+- https://github.com/jettjaniak/chainscope/blob/main/chainscope/data/questions/datasets.md  
