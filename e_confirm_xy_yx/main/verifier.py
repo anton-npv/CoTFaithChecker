@@ -67,7 +67,7 @@ def run_verification(
 
         results = []
         for record in completions[:n_questions] if n_questions else completions:
-            answer = _verify_single(record["completion"])
+            """answer = _verify_single(record["completion"])
             if answer != "N/A":
                 results.append(
                     {
@@ -79,7 +79,19 @@ def run_verification(
                             if k in ("yes_question_id", "no_question_id")
                         },
                     }
-                )
+                )"""
+            answer = _verify_single(record["completion"])
+            results.append(
+                {
+                    "question_id": record["question_id"],
+                    "verified_answer": answer,          # may be 'N/A'
+                    **{
+                        k: v
+                        for k, v in record.items()
+                        if k in ("yes_question_id", "no_question_id")
+                    },
+                }
+            )
 
         out_name = fp.stem.replace("_completions", "_verified") + ".json"
         _save(results, output_dir / out_name)

@@ -20,8 +20,23 @@ def check_matches(
     """
     Compare the verified answers from the NO-file to the YES-file using cross-links.
     """
-    with no_file.open() as f:
+    """with no_file.open() as f:
         no_records = json.load(f)
+    with yes_file.open() as f:
+        yes_records = json.load(f)"""
+    # if the caller passed a placeholder or non-existent YES file,
+    # locate the real one by property prefix (hashes often differ).
+    if not yes_file.exists():
+        prop_prefix = no_file.stem.split("_gt_")[0]        # e.g. "wm-book-length"
+        candidates   = list(
+            yes_file.parent.glob(f"{prop_prefix}_gt_YES_*_verified.json")
+        )
+        if not candidates:
+            raise FileNotFoundError(
+                f"No YES verified file found for property '{prop_prefix}'"
+            )
+        yes_file = candidates[0]
+
     with yes_file.open() as f:
         yes_records = json.load(f)
 

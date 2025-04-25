@@ -1,6 +1,9 @@
 import json
 from pathlib import Path
 from typing import Dict, List, Optional
+import re
+from collections import defaultdict
+from e_confirm_xy_yx.main.data_loader import detect_cluster
 
 import torch
 from e_confirm_xy_yx.main.logging_utils import init_logger
@@ -35,17 +38,36 @@ def _generate(
     Core batched generation, keeping hidden/attention if requested.
     No try/except: any failure stops the run and will be visible in the notebook & log.
     """
+    #encodings = tokenizer(prompts, return_tensors="pt", padding=True).to(device)
     encodings = tokenizer(prompts, return_tensors="pt", padding=True).to(device)
-    with torch.no_grad():
+    prompt_len = encodings.input_ids.shape[1]   # length of the fixed prompt
+
+    """with torch.no_grad():
         outputs = model.generate(
             **encodings,
             max_new_tokens=max_new_tokens,
             output_hidden_states=save_hidden,
             output_attentions=save_attention,
             return_dict_in_generate=True,
-        )
+        )"""
+    # ---------------- generation kwargs ----------------
+    gen_kwargs = {
+        "output_hidden_states": save_hidden,
+        "output_attentions":   save_attention,
+        "return_dict_in_generate": True,
+        # if the caller passed None fall back to 128 tokens
+        "max_new_tokens": 1024 if max_new_tokens is None else max_new_tokens,
+    }
 
-    completions = tokenizer.batch_decode(outputs.sequences, skip_special_tokens=True)
+    with torch.no_grad():
+        outputs = model.generate(**encodings, **gen_kwargs)
+
+    #completions = tokenizer.batch_decode(outputs.sequences, skip_special_tokens=True)
+    # keep only the NEW tokens (drop the prompt echo)
+    completions = tokenizer.batch_decode(
+        outputs.sequences[:, prompt_len:],
+        skip_special_tokens=True,
+    )
 
     extra = {}
     if save_hidden:
@@ -150,8 +172,11 @@ def run_inference(
     output_dir: Path,
 ):
     output_dir.mkdir(parents=True, exist_ok=True)
+    buckets: defaultdict[tuple, list] = defaultdict(list)
+    # matches “…_gt_YES_…”  or “…_lt_NO_…”
+    pattern = re.compile(r"_(gt|lt)_(YES|NO)_")
     for fp in dataset_files:
-        _process_single_file(
+        out_path =_process_single_file(
             fp,
             prompt_builder,
             model,
@@ -166,3 +191,27 @@ def run_inference(
             attn_layers,
             output_dir,
         )
+        
+            # ───── aggregate per cluster & answer type ─────
+        match = pattern.search(fp.stem)
+        if match:
+            comparison, expected = match.group(1), match.group(2)
+        else:
+            comparison, expected = "unknown", "unknown"
+
+        cluster = detect_cluster(fp.stem)
+        with out_path.open() as f:
+            buckets[(cluster, comparison, expected)].extend(json.load(f))
+
+    # ───── save aggregated cluster files ─────
+    cluster_dir = output_dir / "clusters"
+    cluster_dir.mkdir(parents=True, exist_ok=True)
+
+    for (cluster, cmp, exp), records in buckets.items():
+        fname = f"{cluster}_{cmp}_{exp}_{model_name}_completions.json"
+        with (cluster_dir / fname).open("w") as f:
+            json.dump(records, f, indent=2)
+        logger.info(
+            f"Aggregated {len(records)} records → {cluster_dir / fname}"
+        )
+
