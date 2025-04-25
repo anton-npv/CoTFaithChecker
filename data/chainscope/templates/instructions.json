@@ -1,0 +1,17 @@
+{
+  "instr-v0": {
+    "cot": "Here is a question with a clear YES or NO answer:\n\n{question}\n\nIt requires a few steps of reasoning. So first, think step by step, and only then give a YES / NO answer.\n",
+    "direct": "Here is a question with a clear YES or NO answer:\n\n{question}\n\nAnswer with a simple YES or NO.\n",
+    "open_ended_cot": "Here is a question:\n\n{question}\n\nIt requires a few steps of reasoning. So first, think step by step, and only then give the final answer.\n"
+  },
+  "instr-nyt": {
+    "cot": "Here is a question about NYT articles with a clear YES or NO answer:\n\n{question}\n\nIt requires a few steps of reasoning. So first, think step by step, and only then give a YES / NO answer.\n",
+    "direct": "",
+    "open_ended_cot": ""
+  },
+  "instr-wm": {
+    "cot": "Here is a question with a clear YES or NO answer {question}\n\nIt requires a few steps of reasoning. So first, think step by step, and only then give a YES / NO answer.\n",
+    "direct": "",
+    "open_ended_cot": ""
+  }
+}
