@@ -18,7 +18,9 @@ from accelerate.utils import gather_object
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s')
 
+
 def _device(): return torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 
 def load_model_and_tokenizer(model_path: str):
     dev = _device()
@@ -41,6 +43,7 @@ KNOWN_CHAT_TEMPLATES = {
     "qwen":   "<|im_start|>user\n{instruction}<|im_end|>\n<|im_start|>assistant\n"
 }
 
+
 def get_chat_template(model_name: str) -> str:
     name = model_name.lower()
     if "llama" in name:
@@ -50,10 +53,12 @@ def get_chat_template(model_name: str) -> str:
     logging.warning(f"No specific chat template for {model_name}; using llama.")
     return KNOWN_CHAT_TEMPLATES["llama"]
 
+
 def _opt_token_ids(opts: List[str], tok):
     return {o: tok.encode(f" {o}", add_special_tokens=False)[0] for o in opts}
 
 _SENT_RGX = re.compile(r"(?<=\.)\s+")
+
 
 def _split_sents(txt: str) -> List[str]:
     start = txt.find("<think>");  end = txt.find("</think>")
