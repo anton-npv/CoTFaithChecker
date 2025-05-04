@@ -4,6 +4,8 @@ This is Anton & Ida's Neel MATS 8.0 Sprint repo!
 
 We are investigating CoT Unfaithfulness - why does a model write untruthful/unrelated/made-up stuff in its CoT?
 
+This is our [presentation](https://docs.google.com/presentation/d/1fQMwDzENd_6xTv885ih_qPsL6hXHHb-zDT02CGNmpBk/edit?usp=sharing).
+
 ### We define:
 
 - Truthfulness - a given step in the output CoT is actually happening in the internal processes  
@@ -45,9 +47,11 @@ We are investigating CoT Unfaithfulness - why does a model write untruthful/unre
     └── e...
 ```
 
-(note: sudo apt update && sudo apt install tree)
 
 ## Data
 
+We used:
 - MMLU  
 - https://github.com/jettjaniak/chainscope/blob/main/chainscope/data/questions/datasets.md  
+by the [Reasoning In The Wild](https://arxiv.org/pdf/2503.08679) paper
+
