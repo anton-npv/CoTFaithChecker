@@ -102,16 +102,26 @@ def load_target_data(path: Path) -> Dict[int, float]:
         raise ValueError(f"No valid 'prob_verb_match' values found in {path}")
     return target_map
 
-def load_question_ids(meta_path: Path) -> List[int]:
-    """Loads the meta.json file and returns the ordered list of question IDs."""
+def load_question_ids(meta_path: Path) -> Tuple[List[int], int, int]:
+    """Loads the meta.json file and returns the ordered list of question IDs, n_layers, and d_model."""
     with open(meta_path, "r", encoding="utf-8") as f:
         meta_data = json.load(f)
     qids = meta_data.get("question_ids")
+    # Load n_layers and d_model from meta_data
+    n_layers = meta_data.get("n_layers")
+    d_model = meta_data.get("d_model")
     if qids is None:
         raise ValueError(f"'question_ids' not found in {meta_path}")
+    if n_layers is None:
+        raise ValueError(f"'n_layers' not found in {meta_path}")
+    if d_model is None:
+        raise ValueError(f"'d_model' not found in {meta_path}")
     if not isinstance(qids, list):
          raise ValueError(f"'question_ids' in {meta_path} is not a list")
-    return qids
+    print(f"Found {len(qids)} QIDs, {n_layers} layers, d_model {d_model}")
+    # Debug print before returning
+    print(f"[DEBUG] Returning from load_question_ids: type={type((qids, n_layers, d_model))}, values=({type(qids)}, {type(n_layers)}, {type(d_model)})")
+    return qids, n_layers, d_model # Return dimensions too
 
 def get_data_splits(
     all_qids: List[int],
@@ -143,6 +153,64 @@ def get_data_splits(
 
     print(f"Data split (seed {seed}): {len(train_qids)} train, {len(val_qids)} val, {len(test_qids)} test")
     return train_qids, val_qids, test_qids
+
+def get_cleaned_qids(
+    probing_data_full: List[Dict[str, Any]], 
+    target_map: Dict[int, float],
+    clean_data: bool,
+    verbalized_low_threshold: float,
+    nonverbalized_high_threshold: float
+) -> Tuple[List[int], List[int], set[int]]:
+    """
+    Filters question IDs based on cleaning thresholds and original verbalization status.
+
+    Returns:
+        Tuple[List[int], List[int], set[int]]: 
+            - List of kept verbalized QIDs
+            - List of kept non-verbalized QIDs
+            - Set of all kept QIDs
+    """
+    verbalized_qids = []
+    non_verbalized_qids = []
+    original_qids_count = 0
+    kept_qids_count = 0
+    kept_qids_set = set()
+
+    for record in probing_data_full:
+        qid = record["question_id"]
+        if qid not in target_map: 
+            continue
+        
+        original_qids_count += 1
+        prob_verb_match = target_map[qid]
+        original_verbalizes = record.get("original_verbalizes_hint")
+
+        if original_verbalizes is None:
+             print(f"[Warning] Skipping QID {qid}: missing 'original_verbalizes_hint' key during cleaning.")
+             continue
+
+        keep = True
+        if clean_data:
+            if original_verbalizes and prob_verb_match <= verbalized_low_threshold:
+                keep = False
+            elif not original_verbalizes and prob_verb_match >= nonverbalized_high_threshold:
+                keep = False
+        
+        if keep:
+            kept_qids_count += 1
+            kept_qids_set.add(qid)
+            if original_verbalizes:
+                verbalized_qids.append(qid)
+            else:
+                non_verbalized_qids.append(qid)
+
+    print(f"Data Cleaning ({'ENABLED' if clean_data else 'DISABLED'}):")
+    print(f"  Original QIDs with target data: {original_qids_count}")
+    print(f"  QIDs kept after cleaning: {kept_qids_count} ({original_qids_count - kept_qids_count} dropped)")
+    print(f"  Kept Verbalized group size: {len(verbalized_qids)}")
+    print(f"  Kept Non-Verbalized group size: {len(non_verbalized_qids)}")
+
+    return verbalized_qids, non_verbalized_qids, kept_qids_set
 
 def load_activations_for_split(
     activation_path: Path,

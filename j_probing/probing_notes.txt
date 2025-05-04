@@ -5,7 +5,9 @@ After this what I have done is that I rerun every question where the answer has 
 I have already prepared a script to process my data. And now I'm writing a script to collect activations. 
 Note that im loading the model in a specific way - this is not a bug. HookedTransformer just doesnt natively support it so i have to do it this way.
 
-## Data Processing & Activation Collection Workflow
+## Current Workflow
+
+*(Note: Common functions like data loading, probe model definition, and single probe training logic are refactored into `j_probing/utils/training_utils.py`)*
 
 1.  **Probing Dataset Creation (`create_probing_dataset.py`):**
     *   Processes raw model generations and analysis summaries.
@@ -18,33 +20,40 @@ Note that im loading the model in a specific way - this is not a bug. HookedTran
     *   Runs each prompt through the model in batches.
     *   Uses `model.run_with_cache` to extract `resid_post` (hidden state after the MLP/attention block) activations for each layer at the three specified token positions (assistant, think, hint).
     *   Outputs:
-        *   `meta.json`: Contains the list of `question_id`s in the order they were processed.
-        *   `layer_XX.bin` files: One NumPy memmap file per layer, containing a tensor of shape `(num_prompts, d_model, 3)` with the extracted activations for that layer across all prompts. The data type is typically float16.
+        *   `meta.json`: Contains the list of `question_id`s in order, `n_layers`, `d_model`, etc.
+        *   `layer_XX.bin` files: One NumPy memmap file per layer, containing a tensor of shape `(num_prompts, d_model, 3)` with the extracted activations for that layer across all prompts (typically float16).
 
-3.  **Probe Training (`train_probes.py`):**
-    *   Loads activations (`layer_XX.bin`), target variable (`prob_verb_match` from `probing_data.json`), and experiment metadata (`meta.json`).
-    *   Splits data (question IDs) into random train/validation/test sets (default 80%/10%/10%).
-    *   **Iterates through each layer and each token position** (assistant, think, hint).
-    *   For each combination:
-        *   Initializes a simple `LinearProbe` (linear layer + bias).
-        *   Trains the probe using Adam optimizer and MSE loss to predict `prob_verb_match` from activations.
-        *   Uses the validation set for early stopping (based on MSE loss).
-        *   Evaluates the best probe (based on validation loss) on the test set, calculating MSE and Pearson correlation.
-        *   (Optional) Logs metrics and configuration to Weights & Biases.
-        *   Saves the trained probe weights (`probe_weights.pt`) and evaluation metrics (`metrics.json`) to a structured output directory (e.g., `j_probing/probes/MODEL_NAME/seed_X/layer_Y/position_Z/`).
-    *   Saves a summary JSON (`all_results_summary.json`) containing metrics for all trained probes.
+3.  **Probe Training (Two Options):**
+    *   **Option A: Single Split (`train_probes.py`)**
+        *   Loads activations, targets, and metadata.
+        *   Splits data (question IDs) into a *single* random train/validation/test set based on `split_seed`.
+        *   Iterates through each layer and token position.
+        *   For each combo, trains a `LinearProbe` (using `train_probe` utility), performs early stopping on the validation set.
+        *   Evaluates the best probe on the test set (MSE, Pearson R).
+        *   Saves individual probe weights and metrics to `j_probing/probes/MODEL_NAME/single_split/seed_X/...`.
+        *   Saves `all_results_summary.json` for the single split.
+    *   **Option B: K-Fold Cross-Validation (`train_probes_cv.py`)**
+        *   Loads activations, targets, and metadata.
+        *   Splits data into `k` folds based on `cv_split_seed`.
+        *   Iterates through layers and positions.
+        *   For each layer/position, iterates through the `k` folds:
+            *   Designates one fold as the test set, combines the rest for training.
+            *   Performs an *internal* train/validation split on the combined training folds (based on `internal_split_seed` and `internal_val_frac`) for early stopping.
+            *   Trains a `LinearProbe` (using `train_probe` utility) on the internal training set, validating on the internal validation set.
+            *   Evaluates the best probe from that fold on the held-out test fold (MSE, Pearson R).
+        *   Aggregates the test metrics (mean and std dev) across the `k` folds for each layer/position.
+        *   Saves aggregated results (mean/std MSE, mean/std Pearson R) to `all_cv_results_summary.json` in `j_probing/probes/MODEL_NAME/cv_kK/seed_X/...`.
 
-## Pre-run Checklist for `train_probes.py`
-
-Before running `python j_probing/main/train_probes.py`:
-
-1.  **Generate Activations:** Ensure you have successfully run `j_probing/main/get_acts.py` to generate the activation files (`layer_XX.bin`) and the `meta.json` file (containing `n_layers`, `d_model`, etc.) in the correct `j_probing/acts/...` directory.
-2.  **Verify Paths:** Double-check the path variables (`DS_NAME`, `MODEL_NAME_FOR_PATH`, `HINT_TYPE`, `N_QUESTIONS_STR`) inside the `if __name__ == "__main__":` block of `train_probes.py` to ensure they correctly point to the directories containing your `probing_data.json`, `meta.json`, and activation `.bin` files.
-3.  **Check Model Config:** While the script now loads `d_model` and `n_layers` from `meta.json`, ensure these values look correct for the model you used.
-4.  **Install Dependencies:** Make sure you have `torch`, `numpy`, `scipy`, `tqdm`, and potentially `wandb` installed (`pip install torch numpy scipy tqdm wandb`).
-5.  **Wandb Setup (Optional):**
-    *   If you want to use Weights & Biases logging:
-        *   Run `pip install wandb` if not already installed.
-        *   Log in via the terminal: `wandb login` (requires a free account).
-        *   Set your `wandb_entity` (username or team name) in the `TrainingConfig` within the `if __name__ == "__main__":` block.
-    *   If you *don't* want to use Wandb, set `wandb_project=None` in the `TrainingConfig`.
+4.  **Results Visualization (Two Options corresponding to Training):**
+    *   **Option A: Single Split Plotting (`plot_fvu.py`)**
+        *   Loads results from `all_results_summary.json` (single split).
+        *   Calculates FVU based on test MSE and overall label variance.
+        *   Generates a plot showing FVU per layer/position for that specific seed.
+    *   **Option B: Cross-Validation Plotting (`plot_fvu_cv.py`, `plot_pearson_cv.py`)**
+        *   Loads aggregated results from `all_cv_results_summary.json` (CV).
+        *   `plot_fvu_cv.py`:
+            *   Calculates mean and std dev FVU based on mean/std test MSE and overall label variance.
+            *   Generates a plot showing mean FVU per layer/position with shaded error bands (+/- std dev).
+        *   `plot_pearson_cv.py`:
+            *   Loads mean and std dev Pearson correlation (`test_pearson_r_mean`, `test_pearson_r_std`).
+            *   Generates a plot showing mean Pearson R per layer/position with shaded error bands (+/- std dev).

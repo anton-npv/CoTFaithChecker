@@ -1,0 +1,17 @@
+Now I would like to try steering a model towards verbalizing the hint. The way I intend to do this is to collect the activations of the prompts where it's verbalized the hints then to subtract it from where it did not verbalize the hint yeah and use that difference in activations to steer the model towards verbalizing the hint on like on some test data.
+
+yeah and obviously we'll need to so for every candidate steering vector I guess we'll need to generate n completions for a given prompt in the test data and and then you know apply a lubrication stuff and see whether it is how often does it verbalize the prompt or not.
+
+You might also need to do this with the... with different steering strengths 
+
+Importantly from our last experiment we found that that the hint token appears the activations on the hint token appear to be relatively more important to understand whether a prompt will verbalize the hint or not so we'll need to collect I mean the difference activations from that token right and then apply it. 
+
+
+Note that for talking positions, for hint talking position we can probably use the probing dataset (probing_data.json). Also note that i think i would like to drop question ids for original_verbalizes_hint=True where "prob_verb_match" <= 0.2 and original_verbalizes_hint=False where "prob_verb_match" > 0.8. This should be optional and only done if the flag clean_probing_data is set. Also this needs to print how many question ids were dropped and how many were kept. 
+
+
+Also i guess we aclready have the activations for the probing dataset so we don't need to generate them again? do we? i dont knwo
+
+
+
+
