@@ -50,17 +50,17 @@ class ContinuousSteeringConfig:
     output_filename_suffix: str = "_continuous_steered_gens.json"
     # Steering Parameters
     target_layers: List[int] = field(default_factory=lambda: list(range(32)))
-    alpha_values: List[float] = field(default_factory=lambda: [0.2])
+    alpha_values: List[float] = field(default_factory=lambda: [0.2, -0.2])
     hook_point: str = "resid_post"
     # Generation Parameters
-    num_generations_per_prompt: int = 2
-    batch_size: int = 10
+    num_generations_per_prompt: int = 5
+    batch_size: int = 20
     temperature: float = 0.7
-    max_new_tokens: int = 512
+    max_new_tokens: int = 2000
     stop_at_eos: bool = True
     # Test Data Split Parameters
     val_frac: float = 0.05
-    test_frac: float = 0.01
+    test_frac: float = 0.1
     split_seed: int = 42
     # Data Cleaning Parameters (to match vector calculation)
     clean_data: bool = True
@@ -84,6 +84,9 @@ class ContinuousSteeringHook:
         return activation
 
 # --- Custom Generation Function with Hooks ---
+
+# Disable gradient tracking for the whole generation routine to speed up inference & save memory.
+@torch.no_grad()
 def generate_with_hooks(
     model: HookedTransformer,
     tokenizer: AutoTokenizer,
