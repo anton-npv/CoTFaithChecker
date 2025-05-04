@@ -13,7 +13,6 @@ from tqdm.auto import tqdm
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from transformer_lens import HookedTransformer, utils
 from transformer_lens.hook_points import HookPoint
-from jaxtyping import Int 
 from accelerate import Accelerator
 from accelerate.utils import gather_object, broadcast_object_list # Add gather_object and broadcast_object_list
 
@@ -90,14 +89,16 @@ class ContinuousSteeringHook:
     def __call__(self, activation: torch.Tensor, hook: HookPoint):
         if hook.layer() not in self.target_layers:
             return activation 
-        activation[:, -1, :] = activation[:, -1, :] + self.alpha * self.steering_vector.to(activation.dtype)
+        # Move steering vector to the same device/dtype as the activation
+        steer = self.steering_vector.to(dtype=activation.dtype, device=activation.device)
+        activation[:, -1, :] = activation[:, -1, :] + self.alpha * steer
         return activation
 
 # --- Custom Generation Function with Hooks ---
 def generate_with_hooks(
     model: HookedTransformer,
     tokenizer: AutoTokenizer,
-    toks: Int[torch.Tensor, "batch_size seq_len"],
+    toks: torch.Tensor,  # Shape: [batch_size, seq_len]
     max_tokens_generated: int = 100,
     fwd_hooks: List[Tuple[Union[str, Callable], Callable]] = [],
     temperature: float = 0.0,
@@ -105,68 +106,53 @@ def generate_with_hooks(
     stop_at_eos: bool = True,
     accelerator: Accelerator = None
 ) -> List[str]:
-    """Generates text token-by-token applying hooks at each step."""
+    """Generate continuations using HF-style generate with KV-cache while preserving hooks."""
+
     model.eval()
     batch_size, seq_len = toks.shape
-    device = accelerator.device if accelerator else toks.device
+    device = accelerator.device
+
     eos_token_id = tokenizer.eos_token_id
-    pad_token_id = tokenizer.pad_token_id
-    if pad_token_id is None: pad_token_id = eos_token_id
-    
-    all_toks = torch.cat(
-        (toks, torch.full((batch_size, max_tokens_generated), pad_token_id, dtype=torch.long, device=device)),
-        dim=1
-    )
-    finished = torch.zeros(batch_size, dtype=torch.bool, device=device)
-    
-    # Add a print statement before the loop - only on main process
-    if accelerator is None or accelerator.is_main_process:
-        print(f"  Starting generation loop for batch size {batch_size}, seq_len {seq_len}...")
-    
-    for i in range(max_tokens_generated):
-        current_seq_len = seq_len + i
-        
-        # Add print statement inside the loop - only on main process
-        if i % 50 == 0 and (accelerator is None or accelerator.is_main_process): # Print every 50 tokens to avoid spamming
-             print(f"    Generating token {i+1}/{max_tokens_generated}...")
-            
-        # Disable gradient tracking to drastically reduce memory usage during inference
-        with torch.no_grad():
-            with model.hooks(fwd_hooks=fwd_hooks):
-                # Ensure model call respects the device placement done by accelerator.prepare
-                logits = model(all_toks[:, :current_seq_len].to(device))[:, -1, :] 
-        
-        # No sampling logic needs device change, happens on logits device
-        if temperature == 0.0:
-            next_tokens = logits.argmax(dim=-1)
-        else:
-            logits = logits / temperature
-            if top_k > 0:
-                top_logits, top_indices = torch.topk(logits, top_k)
-                mask = torch.full_like(logits, -float('inf'))
-                mask.scatter_(1, top_indices, top_logits)
-                logits = mask
-            probs = torch.nn.functional.softmax(logits, dim=-1)
-            next_tokens = torch.multinomial(probs, num_samples=1).squeeze(-1)
-        
-        # Ensure next_tokens are on the correct device before comparison/assignment
-        next_tokens = next_tokens.to(device) 
-        just_finished = (next_tokens == eos_token_id)
-        finished = finished | just_finished
-        # Ensure eos_token_id is on the correct device for torch.where
-        token_to_add = next_tokens if not stop_at_eos else torch.where(just_finished, torch.tensor(eos_token_id, device=device), next_tokens)
-        all_toks[:, current_seq_len] = torch.where(finished, torch.tensor(pad_token_id, device=device), token_to_add)
-        
-        if stop_at_eos and finished.all(): break
-            
-    results = []
+
+    # Temperature / sampling setup
+    do_sample = temperature > 0.0 or top_k > 0
+
+    with torch.no_grad():
+        with model.hooks(fwd_hooks=fwd_hooks):
+            # Input should already be on the right device, but check and print for debugging
+            input_cuda = toks
+            # Print per-rank device info for debugging
+            if accelerator is None or True:
+                print(f"    [Rank {os.environ.get('LOCAL_RANK', '0')}] tokens device = {input_cuda.device}, model device = {device}")
+            # Add deeper debugging of embedding matrix device
+            embedding_matrix_device = model.embed.W_E.device
+            print(f"    [Rank {os.environ.get('LOCAL_RANK', '0')}] embedding matrix device = {embedding_matrix_device}")
+            # Force tokens to embedding matrix device specifically
+            input_cuda = input_cuda.to(embedding_matrix_device)
+            print(f"    [Rank {os.environ.get('LOCAL_RANK', '0')}] input moved to {input_cuda.device}")
+            # Call generate with explicit parameters (no pad_token_id)
+            gen_ids = model.generate(
+                input_cuda,
+                max_new_tokens=max_tokens_generated,
+                stop_at_eos=stop_at_eos,
+                eos_token_id=eos_token_id,
+                do_sample=do_sample,
+                top_k=top_k if top_k > 0 else None,
+                temperature=temperature if do_sample else None,
+                verbose=False,
+            )
+
+    # gen_ids shape: [B, prompt+new]
+    results: List[str] = []
     for b in range(batch_size):
-        eos_pos = -1
-        if stop_at_eos:
-            eos_indices = (all_toks[b, seq_len:] == eos_token_id).nonzero()
-            if len(eos_indices) > 0: eos_pos = eos_indices[0].item()
-        gen_toks = all_toks[b, seq_len : seq_len + eos_pos] if eos_pos != -1 else all_toks[b, seq_len:]
-        results.append(tokenizer.decode(gen_toks, skip_special_tokens=True))
+        full_seq = gen_ids[b].tolist()
+        gen_part = full_seq[seq_len:]  # tokens after the original prompt
+        # Truncate at EOS if requested and not already stopped
+        if stop_at_eos and eos_token_id in gen_part:
+            eos_index = gen_part.index(eos_token_id)
+            gen_part = gen_part[:eos_index]
+        results.append(tokenizer.decode(gen_part, skip_special_tokens=True))
+
     return results
 
 # --- Main Generation Function ---
@@ -224,35 +210,40 @@ def generate_continuously_steered_completions(cfg: ContinuousSteeringConfig):
 
     # --- Load Model & Tokenizer ---
     if accelerator.is_main_process:
-        print(f"Loading model: {cfg.model_path}")
+        print(f"Loading model on CPU first, then manually moving to {accelerator.device}")
 
-    # Load model on CPU first to avoid early GPU allocation, then let Accelerate handle placement.
+    # Load model on CPU first to avoid immediate GPU placement
     model = HookedTransformer.from_pretrained_no_processing(
         cfg.model_path,
         local_files_only=True,
         dtype=cfg.dtype,
         default_padding_side="left",
+        device="cpu"  # Start on CPU
     )
 
-    # Determine this process's GPU explicitly to avoid all ranks using GPU0
-    local_rank_env = os.environ.get("LOCAL_RANK")
-    if local_rank_env is not None:
-        local_rank = int(local_rank_env)
-    else:
-        # Fallback to accelerator.process_index (works for single-node setups)
-        local_rank = accelerator.process_index
-
-    device = torch.device(f"cuda:{local_rank}" if torch.cuda.is_available() else "cpu")
-
-    if accelerator.is_main_process:
-        print(f"Moving model to device: {device}")
-
-    torch.cuda.set_device(device)
-    model.to(device)
-
+    # Tokenizer setup before model preparation
     tokenizer = model.tokenizer
     if tokenizer.pad_token_id is None: tokenizer.pad_token_id = tokenizer.eos_token_id
-    tokenizer.padding_side = "left" 
+    tokenizer.padding_side = "left"
+
+    # DO NOT use accelerator.prepare() for the model - it wraps with DDP which complicates access
+    # Instead, manually move the entire model to the right device
+    model.to(accelerator.device)
+
+    # Configure TransformerLens to use a single device (disable pipeline parallelism)
+    model.cfg.device = str(accelerator.device)
+    model.cfg.n_devices = 1
+
+    # Debug print to verify environment variables
+    local_rank_env = os.environ.get("LOCAL_RANK", "Not set")
+    rank_env = os.environ.get("RANK", "Not set")
+    world_size_env = os.environ.get("WORLD_SIZE", "Not set")
+    print(f"Process environment: LOCAL_RANK={local_rank_env}, RANK={rank_env}, WORLD_SIZE={world_size_env}, device={accelerator.device}")
+
+    # Verify both model parameters and embedding matrix are on the right device
+    param_device = next(model.parameters()).device
+    embed_device = model.embed.W_E.device
+    print(f"[Rank {accelerator.process_index}] model param device = {param_device}, embedding device = {embed_device}")
 
     # --- Load and Prepare Test Data (Main process loads, then distributes) ---
     if accelerator.is_main_process:
@@ -367,9 +358,11 @@ def generate_continuously_steered_completions(cfg: ContinuousSteeringConfig):
 
             if not batch_prompts: continue # Skip empty batches if data isn't perfectly divisible
 
-            # Tokenize and ensure tensors are on the accelerator's device
-            inputs = tokenizer(batch_prompts, return_tensors="pt", padding=True).to(accelerator.device) 
-            input_toks = inputs.input_ids
+            # Tokenize and move inputs to the same device as the model parameters
+            model_device = next(model.parameters()).device
+            inputs = tokenizer(batch_prompts, return_tensors="pt", padding=True)
+            inputs = {k: v.to(model_device) for k, v in inputs.items()}
+            input_toks = inputs["input_ids"]
 
             batch_generations = []
             for n in range(cfg.num_generations_per_prompt):
