@@ -15,7 +15,9 @@ from transformer_lens import HookedTransformer, utils
 from transformer_lens.hook_points import HookPoint
 from jaxtyping import Int 
 from accelerate import Accelerator
-from accelerate.utils import gather_object # Add gather_object
+from accelerate.utils import gather_object, broadcast_object_list # Add gather_object and broadcast_object_list
+
+# nohup accelerate launch generate_continuous_parallel.py
 
 
 # Add project root to sys.path
@@ -63,13 +65,13 @@ class ContinuousSteeringConfig:
     hook_point: str = "resid_post"
     # Generation Parameters
     num_generations_per_prompt: int = 2
-    batch_size: int = 10
+    batch_size: int = 30
     temperature: float = 0.7
     max_new_tokens: int = 512
     stop_at_eos: bool = True
     # Test Data Split Parameters
     val_frac: float = 0.05
-    test_frac: float = 0.01
+    test_frac: float = 0.1
     split_seed: int = 42
     # Data Cleaning Parameters (to match vector calculation)
     clean_data: bool = True
@@ -95,7 +97,7 @@ class ContinuousSteeringHook:
 def generate_with_hooks(
     model: HookedTransformer,
     tokenizer: AutoTokenizer,
-    toks: Int[torch.Tensor, 'batch_size seq_len'],
+    toks: Int[torch.Tensor, "batch_size seq_len"],
     max_tokens_generated: int = 100,
     fwd_hooks: List[Tuple[Union[str, Callable], Callable]] = [],
     temperature: float = 0.0,
@@ -128,9 +130,11 @@ def generate_with_hooks(
         if i % 50 == 0 and (accelerator is None or accelerator.is_main_process): # Print every 50 tokens to avoid spamming
              print(f"    Generating token {i+1}/{max_tokens_generated}...")
             
-        with model.hooks(fwd_hooks=fwd_hooks):
-            # Ensure model call respects the device placement done by accelerator.prepare
-            logits = model(all_toks[:, :current_seq_len].to(device))[:, -1, :] 
+        # Disable gradient tracking to drastically reduce memory usage during inference
+        with torch.no_grad():
+            with model.hooks(fwd_hooks=fwd_hooks):
+                # Ensure model call respects the device placement done by accelerator.prepare
+                logits = model(all_toks[:, :current_seq_len].to(device))[:, -1, :] 
         
         # No sampling logic needs device change, happens on logits device
         if temperature == 0.0:
@@ -221,21 +225,34 @@ def generate_continuously_steered_completions(cfg: ContinuousSteeringConfig):
     # --- Load Model & Tokenizer ---
     if accelerator.is_main_process:
         print(f"Loading model: {cfg.model_path}")
-        
-    # Load model directly onto the accelerator's device
+
+    # Load model on CPU first to avoid early GPU allocation, then let Accelerate handle placement.
     model = HookedTransformer.from_pretrained_no_processing(
-        cfg.model_path, 
-        local_files_only=True, 
+        cfg.model_path,
+        local_files_only=True,
         dtype=cfg.dtype,
-        default_padding_side='left'
+        default_padding_side="left",
     )
+
+    # Determine this process's GPU explicitly to avoid all ranks using GPU0
+    local_rank_env = os.environ.get("LOCAL_RANK")
+    if local_rank_env is not None:
+        local_rank = int(local_rank_env)
+    else:
+        # Fallback to accelerator.process_index (works for single-node setups)
+        local_rank = accelerator.process_index
+
+    device = torch.device(f"cuda:{local_rank}" if torch.cuda.is_available() else "cpu")
+
+    if accelerator.is_main_process:
+        print(f"Moving model to device: {device}")
+
+    torch.cuda.set_device(device)
+    model.to(device)
+
     tokenizer = model.tokenizer
     if tokenizer.pad_token_id is None: tokenizer.pad_token_id = tokenizer.eos_token_id
     tokenizer.padding_side = "left" 
-
-    # --- Prepare Model with Accelerator ---
-    # Accelerator handles moving the model to the correct device(s) and setting eval mode
-    model = accelerator.prepare(model) 
 
     # --- Load and Prepare Test Data (Main process loads, then distributes) ---
     if accelerator.is_main_process:
@@ -285,16 +302,24 @@ def generate_continuously_steered_completions(cfg: ContinuousSteeringConfig):
     else:
         data_to_distribute = None
         
-    # Wait for main process to load data, then broadcast/distribute
-    accelerator.wait_for_everyone() 
-    # Use broadcast_object_list for potentially large data structures if needed, 
-    # but simple dictionary broadcast might work for moderate sizes.
-    # Let's try simple broadcast first.
-    distributed_data = accelerator.scatter(data_to_distribute) if accelerator.num_processes > 1 else [data_to_distribute]
-    # Extract data on each process
-    test_prompts_list = distributed_data[accelerator.process_index]["prompts"]
-    test_qids_list = distributed_data[accelerator.process_index]["qids"]
-    qid_to_original_verbalizes = distributed_data[accelerator.process_index]["qid_verbalization"] # Each process gets the full map
+    # Broadcast prompt/QID data from rank 0, then slice by rank
+    if accelerator.is_main_process:
+        container = [data_to_distribute]
+    else:
+        container = [None]
+
+    broadcast_object_list(container)  # After call, container[0] is available on all ranks
+    shared_data = container[0]
+
+    # Slice by rank to reduce per-GPU load
+    all_prompts = shared_data["prompts"]
+    all_qids = shared_data["qids"]
+    qid_to_original_verbalizes = shared_data["qid_verbalization"]
+
+    rank = accelerator.process_index
+    world = accelerator.num_processes
+    test_prompts_list = all_prompts[rank::world]
+    test_qids_list = all_qids[rank::world]
     
     if accelerator.is_main_process:
          print(f"Data distributed. Process 0 has {len(test_prompts_list)} prompts.")
