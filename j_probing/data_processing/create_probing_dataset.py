@@ -84,9 +84,15 @@ def _extract_prompt(gen_str: str) -> str:
     """Return the prompt portion up to and including the last `<think>\n`."""
     idx = gen_str.rfind(THINK_DELIM)
     if idx == -1:
-        # Fallback: return entire string if delimiter missing
-        return gen_str
-    return gen_str[: idx + len(THINK_DELIM)]
+        prompt = gen_str
+    else:
+        prompt = gen_str[: idx + len(THINK_DELIM)]
+
+    # Collapse any unwanted <think> immediately before the assistant header
+    unwanted_seq = "\n<think>"  # '<think>' without newline
+    if unwanted_seq in prompt:
+        prompt = prompt.replace(unwanted_seq, "")
+    return prompt
 
 
 def _find_hint_token_idx(prompt: str) -> int:
@@ -116,27 +122,83 @@ def _find_hint_token_idx(prompt: str) -> int:
 
 
 def _token_positions(prompt: str) -> List[int]:
-    """Return `[assistant_idx, think_idx, hint_idx]` for the given prompt.
-
-    • `assistant_idx` – token index of the ``<|Assistant|>`` header immediately before
-      the final `<think>` delimiter. This is always the **third** token from the end
-      of the prompt, so we record it as `-3` (relative index).
-
-    • `think_idx` – token index of the `<think>` delimiter, which is always the second
-      token from the end (`-2`).
-
-    • `hint_idx` – token index (0-based, counting from the *start* of the prompt) of
-      the hinted answer option (e.g. the `'C'` in "[ C ]"). If the hint cannot be
-      located the function returns `-1` for this element.
+    """Return token positions for the given prompt:
+    • assistant_idx – absolute token index of the `<|Assistant|>` header.
+    • think_idx – absolute token index of the `<think>` delimiter.
+    • hint_idx – absolute token index of the hinted answer option.
+    • answer_idx – absolute token index of the first occurrence of "answer".
+    • correct_idx – absolute token index of the first occurrence of "correct".
+    • option_idx – absolute token index of the first occurrence of "option".
+    • period_idx – absolute token index of the first '.' following "option".
+    • after_hint_idx – absolute token index immediately after the hint token.
+    • before_assistant_idx – absolute token index immediately before the assistant header.
     """
+    # Fixed relative offsets for assistant and think tokens
+    assistant_idx_rel = -3
+    think_idx_rel = -2
 
-    # Assistant and <think> positions are fixed relative to the end of the prompt
-    assistant_idx_rel = -3  # third token from the end
-    think_idx_rel = -2      # second token from the end
+    # Compute absolute indexes via tokenizer
+    if _TOKENIZER:
+        full_tokens = _TOKENIZER.encode(prompt, add_special_tokens=False)
+        n_tokens = len(full_tokens)
+        assistant_idx_abs = n_tokens + assistant_idx_rel
+        think_idx_abs = n_tokens + think_idx_rel
+    else:
+        assistant_idx_abs = assistant_idx_rel
+        think_idx_abs = think_idx_rel
 
-    hint_idx_abs = _find_hint_token_idx(prompt)
+    # Compute hint index (absolute)
+    try:
+        hint_idx_abs = _find_hint_token_idx(prompt)
+    except Exception:
+        hint_idx_abs = -1
 
-    return [assistant_idx_rel, think_idx_rel, hint_idx_abs]
+    # Extract the instruction line to restrict keyword searches
+    instr_line = None
+    for line in prompt.splitlines():
+        if line.strip().lower().startswith("please answer"):  # detect the instruction
+            instr_line = line
+            break
+    if instr_line:
+        instr_start = prompt.find(instr_line)
+        instr_end = instr_start + len(instr_line)
+        instr_sub = prompt[instr_start:instr_end]
+    else:
+        instr_start = instr_end = -1
+        instr_sub = ""
+
+    def find_instr_keyword_idx(keyword: str) -> int:
+        # Find keyword only within the instruction line
+        if _TOKENIZER is None or instr_line is None:
+            return -1
+        rel_pos = instr_sub.find(keyword)
+        if rel_pos == -1:
+            return -1
+        abs_char = instr_start + rel_pos
+        return len(_TOKENIZER.encode(prompt[:abs_char], add_special_tokens=False))
+
+    answer_idx_abs = find_instr_keyword_idx("answer") - 1
+    correct_idx_abs = find_instr_keyword_idx("correct") - 1
+    option_idx_abs = find_instr_keyword_idx("option") - 1
+    period_idx_abs = option_idx_abs + 1
+
+    # Token immediately after hint
+    after_hint_idx_abs = hint_idx_abs + 1 if hint_idx_abs >= 0 else -1
+
+    # Token immediately before assistant header
+    before_assistant_idx_abs = assistant_idx_abs - 1 if assistant_idx_abs >= 0 else -1
+
+    return [
+        assistant_idx_abs,
+        think_idx_abs,
+        hint_idx_abs,
+        answer_idx_abs,
+        correct_idx_abs,
+        option_idx_abs,
+        period_idx_abs,
+        after_hint_idx_abs,
+        before_assistant_idx_abs,
+    ]
 
 
 # --------------------------------------------------------------------------------------
@@ -184,25 +246,38 @@ def main() -> None:
         probing_records.append(record)
 
         # Sanity check: Print tokens at calculated positions
-        # if _TOKENIZER:
-        #     try:
-        #         tokens = _TOKENIZER.tokenize(prompt)
-        #         asst_idx_abs = len(tokens) + token_pos[0]  # Convert relative -3 to absolute
-        #         think_idx_abs = len(tokens) + token_pos[1] # Convert relative -2 to absolute
-        #         hint_idx_abs = token_pos[2]
+        if _TOKENIZER:
+            try:
+                tokens = _TOKENIZER.tokenize(prompt)
+                asst_idx_abs = token_pos[0]  # Convert relative -3 to absolute
+                think_idx_abs = token_pos[1] # Convert relative -2 to absolute
+                hint_idx_abs = token_pos[2]
+                answer_idx_abs = token_pos[3]
+                correct_idx_abs = token_pos[4]
+                option_idx_abs = token_pos[5]
+                period_idx_abs = token_pos[6]
+                after_hint_idx_abs = token_pos[7]
+                before_assistant_idx_abs = token_pos[8]
 
-        #         print(f"--- QID: {qid} ---")
-        #         print(f"Token @ Assistant Idx ({token_pos[0]} -> {asst_idx_abs}): '{tokens[asst_idx_abs]}'")
-        #         print(f"Token @ Think Idx ({token_pos[1]} -> {think_idx_abs}): '{tokens[think_idx_abs]}'")
-        #         if hint_idx_abs != -1:
-        #             print(f"Token @ Hint Idx ({hint_idx_abs}): '{tokens[hint_idx_abs]}'")
-        #         else:
-        #             print("Hint token not found.")
-        #         print("-" * (13 + len(str(qid)))) # Match width of header line
-        #     except IndexError:
-        #         print(f"[create_probing_dataset] Warning: QID {qid} - Token index out of range during sanity check.")
-        #     except Exception as e:
-        #         print(f"[create_probing_dataset] Warning: QID {qid} - Error during sanity check: {e}")
+                print(f"--- QID: {qid} ---")
+                print(f"Token @ Assistant Idx ({token_pos[0]} -> {asst_idx_abs}): '{tokens[asst_idx_abs]}'")
+                print(f"Token @ Think Idx ({token_pos[1]} -> {think_idx_abs}): '{tokens[think_idx_abs]}'")
+                if hint_idx_abs != -1:
+                    print(f"Token @ Hint Idx ({hint_idx_abs}): '{tokens[hint_idx_abs]}'")
+                else:
+                    print("Hint token not found.")
+
+                print(f"Token @ Answer Idx ({answer_idx_abs}): '{tokens[answer_idx_abs]}'")
+                print(f"Token @ Correct Idx ({correct_idx_abs}): '{tokens[correct_idx_abs]}'")
+                print(f"Token @ Option Idx ({option_idx_abs}): '{tokens[option_idx_abs]}'")
+                print(f"Token @ Period Idx ({period_idx_abs}): '{tokens[period_idx_abs]}'")
+                print(f"Token @ After Hint Idx ({after_hint_idx_abs}): '{tokens[after_hint_idx_abs]}'")
+                print(f"Token @ Before Assistant Idx ({before_assistant_idx_abs}): '{tokens[before_assistant_idx_abs]}'")
+                print("-" * (13 + len(str(qid)))) # Match width of header line
+            except IndexError:
+                print(f"[create_probing_dataset] Warning: QID {qid} - Token index out of range during sanity check.")
+            except Exception as e:
+                print(f"[create_probing_dataset] Warning: QID {qid} - Error during sanity check: {e}")
 
     # 3. Write out
     with open(OUTPUT_JSON, "w", encoding="utf-8") as f:

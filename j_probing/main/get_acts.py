@@ -2,15 +2,12 @@
 
 This script loads the probing dataset produced by `create_probing_dataset.py`,
 feeds every prompt through the chosen model using **TransformerLens** and
-stores (layer, hidden_size) activations at three token positions for every
-prompt:
-    0 → assistant token (last token in the prompt)
-    1 → think token      (second–to–last token)
-    2 → hint token       (first token that includes substring 'hint')
+stores (layer, hidden_size) activations at each specified token position for every
+prompt (e.g., assistant header, think delimiter, hint token, and additional keywords).
 
-The result is one tensor per layer written to `<output_dir>/layer_{L:02d}.pt`
-with shape `(N_prompts, hidden_size, 3)` – the last dim corresponds to the
-three key positions in the above order.
+The result is one tensor per layer written to `<output_dir>/layer_{L:02d}.bin`
+with shape `(N_prompts, hidden_size, P)` – the last dim corresponds to the
+P token positions in the probing data.
 A `meta.json` file lists the question_ids in the same row-order.
 
 NOTE: Argparse is deliberately avoided.  At the bottom of the file we call
@@ -82,24 +79,20 @@ def extract_batch_activations(
     n_layers = model.cfg.n_layers
     d_model = model.cfg.d_model
 
-    # Prepare per-layer containers
-    acts_per_layer = [torch.empty((len(prompts), d_model, 3), dtype=dtype, device="cpu") for _ in range(n_layers)]
+    # Determine number of positions and prepare per-layer containers
+    num_positions = len(token_positions[0]) if token_positions else 0
+    acts_per_layer = [torch.empty((len(prompts), d_model, num_positions), dtype=dtype, device="cpu") for _ in range(n_layers)]
 
-    # Iterate over batch items to slice positions
+    # Iterate over batch items to slice positions dynamically
     for b_idx, (tok_idxs, pos_list) in enumerate(zip(tokens, token_positions)):
         seq_len = tok_idxs.size(0)
-        # Unpack expected positions; clamp to seq_len-1 if out-of-range
-        a_idx, t_idx, h_idx = pos_list
-        a_idx = min(max(a_idx, 0), seq_len - 1)
-        t_idx = min(max(t_idx, 0), seq_len - 1)
-        h_idx = min(max(h_idx, 0), seq_len - 1)
-
+        # Clamp all positions to valid range
+        clamped_idxs = [min(max(idx, 0), seq_len - 1) for idx in pos_list]
         for layer in range(n_layers):
-            resid: torch.Tensor = cache[f"resid_post", layer][b_idx]  # (seq_len, d_model)
-            # Grab activations at our three positions & move to CPU right away
-            acts_per_layer[layer][b_idx, :, 0] = resid[a_idx].to("cpu")
-            acts_per_layer[layer][b_idx, :, 1] = resid[t_idx].to("cpu")
-            acts_per_layer[layer][b_idx, :, 2] = resid[h_idx].to("cpu")
+            resid: torch.Tensor = cache[("resid_post", layer)][b_idx]  # (seq_len, d_model)
+            # Grab activations at each position & move to CPU
+            for pos_idx, tok_idx in enumerate(clamped_idxs):
+                acts_per_layer[layer][b_idx, :, pos_idx] = resid[tok_idx].to("cpu")
 
     # Explicitly free GPU cache of this forward pass
     del cache, tokens
@@ -175,6 +168,8 @@ def run(
 
     print(f"Allocated mem-maps for {n_layers} layers in {display_path}")
 
+    # Determine number of positions from probing data
+    num_positions = len(token_pos[0]) if token_pos else 0
     layer_files = []
     for layer in range(n_layers):
         fpath = output_dir / f"layer_{layer:02d}.bin"
@@ -182,7 +177,7 @@ def run(
             filename=str(fpath),
             mode="w+",
             dtype=np.float16,
-            shape=(n_prompts, d_model, 3),
+            shape=(n_prompts, d_model, num_positions),
         )
         layer_files.append(mm)
 
