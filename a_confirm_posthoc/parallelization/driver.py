@@ -22,6 +22,8 @@ from zoneinfo import ZoneInfo
 from datetime import datetime, timezone
 import socket, os, sys
 from accelerate import Accelerator
+from accelerate.utils import DistributedDataParallelKwargs, InitProcessGroupKwargs
+from datetime import timedelta
 
 PROJECT_ROOT = pathlib.Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_ROOT))
@@ -42,7 +44,12 @@ logging.basicConfig(
     handlers=[logging.FileHandler(LOG_FILE, mode="w")]
 )
 
-accelerator = Accelerator()
+# Set timeout (e.g., 1 hour)
+timeout_kwargs = InitProcessGroupKwargs(timeout=timedelta(seconds=1800))
+
+# Initialize Accelerator
+accelerator = Accelerator(kwargs_handlers=[timeout_kwargs])
+
 if accelerator.is_main_process:
     logging.getLogger().addHandler(logging.StreamHandler())
 
@@ -57,10 +64,10 @@ model, tokenizer, model_name, _ = load_model_and_tokenizer(model_path)
 model, tokenizer = accelerator.prepare(model, tokenizer)
 device = accelerator.device
 
-dataset_name = "mmlu"
+dataset_name = "mmlu_new"
 #hint_types = ["none", "sycophancy", "unethical_information", "induced_urgency"]
-hint_types = ["none"]
-n_questions = 5000
+hint_types = ["sycophancy"]
+n_questions = 8960
 
 print("generating completions at", datetime.now(ZoneInfo("Europe/London")).isoformat(timespec="seconds"))
 
@@ -72,7 +79,7 @@ generate_dataset_completions(
     device=device,
     dataset_name=dataset_name,
     hint_types=hint_types,
-    batch_size=32,          # per-GPU !
+    batch_size=50,          # per-GPU !
     max_new_tokens=4096,
     n_questions=n_questions
 )
