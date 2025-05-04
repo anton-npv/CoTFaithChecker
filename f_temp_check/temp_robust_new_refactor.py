@@ -5,7 +5,8 @@ import os
 import logging
 import argparse
 from accelerate import Accelerator # Add Accelerator
-from accelerate.utils import gather_object # Add gather_object
+from accelerate.utils import gather_object, InitProcessGroupKwargs # Add gather_object
+from datetime import timedelta
 # Add project root to sys.path
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if project_root not in sys.path:
@@ -46,8 +47,13 @@ except ImportError:
 # --- Logging Setup ---
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(process)d - %(message)s') # Added process ID
 
-# --- Initialize Accelerator ---
-accelerator = Accelerator()
+# Set timeout (e.g., 1 hour)
+timeout_kwargs = InitProcessGroupKwargs(timeout=timedelta(seconds=1800))
+
+# Initialize Accelerator
+accelerator = Accelerator(kwargs_handlers=[timeout_kwargs])
+
+
 
 # Setup logging to be more informative and less verbose on non-main processes
 if not accelerator.is_main_process:
@@ -829,12 +835,12 @@ def run_analysis_phase(args):
 # Default configuration
 config = {
     "model_path": "deepseek-ai/DeepSeek-R1-Distill-Llama-8B",  # Example model path
-    "dataset_name": "mmlu",
+    "dataset_name": "mmlu_new",
     "hint_type": "sycophancy",
-    "n_questions": 3000,
+    "n_questions": 8960,
     "output_dir": None, # Add back with None value
     "demo_mode_limit": None,  # Set to None to process all questions
-    "num_generations": 10,
+    "num_generations": 6,
     "temperature": 0.7,
     "max_new_tokens": 5000,
     "batch_size": 50
