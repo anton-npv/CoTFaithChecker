@@ -1,0 +1,35 @@
+This document summarizes the key changes and the rationale for making HookedTransformer work with Accelerate in a multi-GPU inference pipeline:
+
+1. Removed DDP wrapping (accelerator.prepare) for inference:
+   • Original use of DistributedDataParallel imposed extra memory overhead (gradient buckets) and was unnecessary for inference-only workloads.
+   • Switched to manual device placement of the model on each rank's GPU via `model.to(accelerator.device)`.
+
+2. Consistent device mapping:
+   • Abandoned manual LOCAL_RANK logic in favor of `accelerator.device`, which automatically corresponds to each process's GPU.
+   • Ensured the model weights (e.g., the embedding matrix) and all input tensors (token IDs) are moved to the same GPU by calling `inputs.to(next(model.parameters()).device)`.
+
+3. Prevented gradient accumulation:
+   • Wrapped all forward/generation calls in `with torch.no_grad()` to stop autograd from storing activations, drastically reducing peak GPU memory.
+
+4. KV-cache generation via `HookedTransformer.generate`:
+   • Replaced manual token-by-token generation loops with the built-in `generate()` API that reuses cached keys/values, improving speed and memory efficiency.
+   • Retained user-defined hooks by wrapping the entire `generate()` call inside `with model.hooks(fwd_hooks=...)`.
+
+5. Distributed data distribution fixes:
+   • Replaced the deprecated and now-removed `accelerator.scatter` with `broadcast_object_list(container)` to broadcast the full prompt/QID lists from rank 0.
+   • Sliced the shared list in Python (`all_prompts[rank::world]`) so each process works on its partition of prompts.
+
+6. Correct result gathering:
+   • Used `gather_object([local_results_dict])` (wrapping in a one-element list) so that PyTorch's all-gather doesn't iterate over dictionary keys.
+   • Collected the per-rank dictionaries directly as a list and merged them on the main process.
+
+7. Debug instrumentation:
+   • Added print statements to verify per-rank device assignments (`tokens.device`, `model.embed.W_E.device`) and to confirm the size and structure of gathered results.
+
+Why it failed before:
+- Initial OOMs were due to DDP's extra memory overhead and unintended gradient storage during each forward pass.
+- The "indices should be on the same device" error occurred because embedding weights lived on one GPU (cuda:0) while input tokens were on other GPUs (cuda:1/2/3).
+- Passing unsupported kwargs (pad_token_id) to `HookedTransformer.generate` caused signature errors; we removed pad_token_id from generation_kwargs and aligned with its supported parameters (`stop_at_eos`, `eos_token_id`, etc.).
+- Mismatches in gather/scatter APIs led to malformed data structures (lists of ints) instead of dictionaries when collecting results.
+
+By enforcing a single, consistent device per process, disabling gradients, and leveraging Accelerate's broadcast/gather utilities correctly, the pipeline now runs without OOMs or device-mismatch errors on 4×H100 GPUs.

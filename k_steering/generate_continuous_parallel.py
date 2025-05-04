@@ -60,10 +60,10 @@ class ContinuousSteeringConfig:
     output_filename_suffix: str = "_continuous_steered_gens.json"
     # Steering Parameters
     target_layers: List[int] = field(default_factory=lambda: list(range(32)))
-    alpha_values: List[float] = field(default_factory=lambda: [0.2])
+    alpha_values: List[float] = field(default_factory=lambda: [0.15])
     hook_point: str = "resid_post"
     # Generation Parameters
-    num_generations_per_prompt: int = 2
+    num_generations_per_prompt: int = 5
     batch_size: int = 30
     temperature: float = 0.7
     max_new_tokens: int = 512
@@ -226,12 +226,10 @@ def generate_continuously_steered_completions(cfg: ContinuousSteeringConfig):
     if tokenizer.pad_token_id is None: tokenizer.pad_token_id = tokenizer.eos_token_id
     tokenizer.padding_side = "left"
 
-    # DO NOT use accelerator.prepare() for the model - it wraps with DDP which complicates access
-    # Instead, manually move the entire model to the right device
-    model.to(accelerator.device)
+    # Move model to the correct GPU and update internal config
+    model.to(str(accelerator.device))
 
-    # Configure TransformerLens to use a single device (disable pipeline parallelism)
-    model.cfg.device = str(accelerator.device)
+    # Disable pipeline parallelism
     model.cfg.n_devices = 1
 
     # Debug print to verify environment variables
@@ -359,10 +357,9 @@ def generate_continuously_steered_completions(cfg: ContinuousSteeringConfig):
             if not batch_prompts: continue # Skip empty batches if data isn't perfectly divisible
 
             # Tokenize and move inputs to the same device as the model parameters
-            model_device = next(model.parameters()).device
             inputs = tokenizer(batch_prompts, return_tensors="pt", padding=True)
-            inputs = {k: v.to(model_device) for k, v in inputs.items()}
-            input_toks = inputs["input_ids"]
+            inputs = inputs.to(next(model.parameters()).device)
+            input_toks = inputs.input_ids
 
             batch_generations = []
             for n in range(cfg.num_generations_per_prompt):
@@ -398,8 +395,21 @@ def generate_continuously_steered_completions(cfg: ContinuousSteeringConfig):
     # --- Gather Results from All Processes ---
     if accelerator.num_processes > 1:
         if accelerator.is_main_process: print("Gathering results from all processes...")
-        gathered_results_list = gather_object(local_results_dict) # Gather list of dictionaries
+        # Gather each process's results dictionary: returns a list of dicts, one per rank
+        gathered_results_list = gather_object([local_results_dict])
         
+        # DEBUG: Print the gathered results before combining
+        if accelerator.is_main_process:
+            print(f"[Debug Rank 0] Gathered results count: {len(gathered_results_list)}")
+            # Inspect each rank's result dict
+            for idx, proc_dict in enumerate(gathered_results_list):
+                # proc_dict should be a dict mapping qid->data
+                if isinstance(proc_dict, dict):
+                    qids = list(proc_dict.keys())
+                    print(f"[Debug Rank 0] Process {idx} has {len(qids)} QIDs; sample QIDs: {qids[:5]}")
+                else:
+                    print(f"[Debug Rank 0] Process {idx} returned non-dict: {type(proc_dict)} -> {proc_dict}")
+
         # Combine results on the main process
         if accelerator.is_main_process:
             print("Combining gathered results...")
