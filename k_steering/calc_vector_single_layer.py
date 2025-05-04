@@ -110,6 +110,7 @@ def calculate_single_layer_steering_vector(cfg: CalcVectorConfig):
         mean_verbalized = np.mean(verbalized_acts.astype(np.float32), axis=0)
         mean_non_verbalized = np.mean(non_verbalized_acts.astype(np.float32), axis=0)
         diff_vector = mean_verbalized - mean_non_verbalized
+        diff_vector = diff_vector / np.linalg.norm(diff_vector)
         steering_vector_tensor = torch.from_numpy(diff_vector).to(cfg.dtype) # Cast to desired dtype
 
     except Exception as e:

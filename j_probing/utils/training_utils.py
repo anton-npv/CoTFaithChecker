@@ -243,22 +243,26 @@ def load_activations_for_split(
 
     # Load the memmap file
     try:
-        # Ensure the shape matches exactly what was saved by get_acts.py
+        # Dynamically determine number of positions from file size
+        file_size = activation_path.stat().st_size
+        item_size = np.dtype(memmap_dtype).itemsize
+        total_elems = file_size // item_size
+        num_positions = total_elems // (n_total * d_model)
+        if n_total * d_model * num_positions != total_elems:
+            raise ValueError(f"Unexpected memmap size: {file_size}")
         memmap = np.memmap(
             filename=str(activation_path),
-            mode="r", # Read-only
+            mode="r",  # Read-only
             dtype=memmap_dtype,
-            shape=(n_total, d_model, 3), # N, D, 3 (positions)
+            shape=(n_total, d_model, num_positions),
         )
     except FileNotFoundError:
         print(f"[Error] Activation file not found: {activation_path}")
         raise
     except ValueError as e:
-        # Check if shape mismatch is the likely cause
-        expected_size = n_total * d_model * 3 * np.dtype(memmap_dtype).itemsize
+        # Could not interpret file size or shape mismatch
         actual_size = activation_path.stat().st_size
-        print(f"[Error] Loading {activation_path}. Expected size {expected_size}, actual size {actual_size}.")
-        print(f"Shape mismatch or other error loading: {e}")
+        print(f"[Error] Loading {activation_path}. File size {actual_size} bytes could not be parsed: {e}")
         raise
 
     # Extract the specific position and the rows for the current split

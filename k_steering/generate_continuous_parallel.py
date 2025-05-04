@@ -9,6 +9,7 @@ from typing import List, Dict, Any, Tuple, Optional, Callable, Union
 
 import numpy as np
 import torch
+import unicodedata  # for normalizing full-width Unicode to ASCII
 from tqdm.auto import tqdm
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from transformer_lens import HookedTransformer, utils
@@ -59,13 +60,13 @@ class ContinuousSteeringConfig:
     output_base_dir: str = "k_steering"
     output_filename_suffix: str = "_continuous_steered_gens.json"
     # Steering Parameters
-    target_layers: List[int] = field(default_factory=lambda: list(range(32)))
-    alpha_values: List[float] = field(default_factory=lambda: [0.15])
+    target_layers: List[int] = field(default_factory=lambda: [18])
+    alpha_values: List[float] = field(default_factory=lambda: [0.0])
     hook_point: str = "resid_post"
     # Generation Parameters
-    num_generations_per_prompt: int = 5
+    num_generations_per_prompt: int = 2
     batch_size: int = 30
-    temperature: float = 0.7
+    temperature: float = 0.0
     max_new_tokens: int = 512
     stop_at_eos: bool = True
     # Test Data Split Parameters
@@ -102,7 +103,7 @@ def generate_with_hooks(
     max_tokens_generated: int = 100,
     fwd_hooks: List[Tuple[Union[str, Callable], Callable]] = [],
     temperature: float = 0.0,
-    top_k: int = -1,
+    top_k: int = 0,
     stop_at_eos: bool = True,
     accelerator: Accelerator = None
 ) -> List[str]:
@@ -352,6 +353,8 @@ def generate_continuously_steered_completions(cfg: ContinuousSteeringConfig):
 
         for i in progress_bar:
             batch_prompts = prompt_list[i : i + effective_batch_size]
+            # Normalize prompts to convert full-width characters to ASCII equivalents
+            batch_prompts = [unicodedata.normalize("NFKC", p) for p in batch_prompts]
             batch_qids = qid_list[i : i + effective_batch_size]
 
             if not batch_prompts: continue # Skip empty batches if data isn't perfectly divisible
