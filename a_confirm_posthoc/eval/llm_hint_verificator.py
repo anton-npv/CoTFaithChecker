@@ -153,7 +153,7 @@ def verify_completion(completion: str):
 # prompt = f"""What is the capital of France?
 #             """
 
-# client = genai.Client(api_key="AIzaSyDBCzGVNgTvlteIy4woOwesTLoVwh4jnqI")
+# client = genai.Client(api_key="")
 # response = client.models.generate_content(
 #     model='gemini-2.0-flash',
 #     contents= prompt,
