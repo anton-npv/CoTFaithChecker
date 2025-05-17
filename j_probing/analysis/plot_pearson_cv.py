@@ -60,8 +60,15 @@ def load_question_ids(meta_path: Path) -> List[int]:
     return qids, n_layers, d_model
 # --- End Copied Utils ---
 
-POSITION_ORDER = ["assistant", "think", "hint"]
-POSITION_MAP = {0: "assistant", 1: "think", 2: "hint"}
+POSITION_ORDER = ["assistant", "think", "hint", "correct", "option", "after_hint"]
+POSITION_MAP = {
+    0: "assistant",
+    1: "think",
+    2: "hint",
+    3: "correct",
+    4: "option",
+    5: "after_hint",
+}
 
 # Removed get_custom_scale_transform as it's likely not needed for Pearson r
 
@@ -122,14 +129,35 @@ def plot_combined_pearson_cv(
     ax.yaxis.set_major_formatter(FuncFormatter(lambda y, _: f"{y:.1f}"))
     # --- End Y-axis Setup ---
 
-    # Define colors/styles (same as before)
-    colors = {"assistant": "#45B8FE", "think": "#FF9966", "hint": "#1A7F64"}
-    linestyles = {"assistant": "-", "think": "--", "hint": "-."}
-    markers = {"assistant": "o", "think": "D", "hint": "s"}
-    linewidths = {"assistant": 3.0, "think": 2.5, "hint": 2.5}
-    markersize = {"assistant": 8, "think": 7, "hint": 7}
+    # Define colors and styles for selected token positions
+    colors = {
+        "assistant": "#45B8FE",
+        "think": "#FF9966",
+        "hint": "#1A7F64",
+        "correct": "#1B9E77",
+        "option": "#7570B3",
+        "after_hint": "#66A61E",
+    }
+    linestyles = {
+        "assistant": "-",
+        "think": "--",
+        "hint": "-.",
+        "correct": "-",
+        "option": "--",
+        "after_hint": ":",
+    }
+    markers = {
+        "assistant": "o",
+        "think": "D",
+        "hint": "s",
+        "correct": "X",
+        "option": "v",
+        "after_hint": "h",
+    }
+    linewidths = {pos: 2.5 for pos in POSITION_ORDER}
+    markersize = {pos: 7 for pos in POSITION_ORDER}
     markeredgewidth = 1.5
-    markeredgecolor = {"assistant": "white", "think": "white", "hint": "white"}
+    markeredgecolor = {pos: "white" for pos in POSITION_ORDER}
 
     layers_plotted = set()
     for pos_name in POSITION_ORDER:

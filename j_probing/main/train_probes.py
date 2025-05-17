@@ -52,7 +52,8 @@ def run_probe_training(cfg: TrainingConfig):
 
     print("Loading data...")
     target_map = load_target_data(cfg.data.probing_data_path)
-    all_qids_ordered = load_question_ids(cfg.data.meta_path)
+    # load_question_ids now returns (qids_list, n_layers, d_model)
+    all_qids_ordered, _, _ = load_question_ids(cfg.data.meta_path)
     n_prompts = len(all_qids_ordered)
     print(f"Found {n_prompts} prompts in meta.json")
     print(f"Loaded targets for {len(target_map)} QIDs.")
@@ -110,7 +111,18 @@ def run_probe_training(cfg: TrainingConfig):
     val_labels = [target_map[qid] for qid in val_qids]
     test_labels = [target_map[qid] for qid in test_qids]
 
-    position_map = {0: "assistant", 1: "think", 2: "hint"}
+    # Map each position index to a human-readable name, matching probing_data.token_pos order
+    position_map = {
+        0: "assistant",
+        1: "think",
+        2: "hint",
+        3: "answer",
+        4: "correct",
+        5: "option",
+        6: "period",
+        7: "after_hint",
+        8: "before_assistant",
+    }
     all_results = {}
 
     # Load test activations once outside the loop (for efficiency)

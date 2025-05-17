@@ -57,7 +57,7 @@ class CVConfig:
     cv_split_seed: int = 42 # Seed for KFold shuffling
     # --- Validation within Fold --- 
     internal_val_frac: float = 0.15 # Fraction of training fold used for validation
-    internal_split_seed: int = 43 # Separate seed for val split within fold
+    internal_split_seed: int = 42 # Separate seed for val split within fold
     # --- Training Loop Params (used by train_probe) ---
     max_steps: int = 5000
     patience: int = 500
@@ -78,7 +78,8 @@ def run_cv_probe_training(cfg: CVConfig):
 
     print("Loading data...")
     target_map = load_target_data(cfg.data.probing_data_path)
-    all_qids_ordered = load_question_ids(cfg.data.meta_path)
+    # load_question_ids now returns (qids_list, n_layers, d_model)
+    all_qids_ordered, _, _ = load_question_ids(cfg.data.meta_path)
     n_prompts = len(all_qids_ordered)
     print(f"Found {n_prompts} prompts in meta.json")
 
@@ -122,7 +123,18 @@ def run_cv_probe_training(cfg: CVConfig):
     # Initialize KFold
     kf = KFold(n_splits=cfg.k_folds, shuffle=True, random_state=cfg.cv_split_seed)
 
-    position_map = {0: "assistant", 1: "think", 2: "hint"}
+    # Map each token position index to its descriptive name
+    position_map = {
+        0: "assistant",
+        1: "think",
+        2: "hint",
+        3: "answer",
+        4: "correct",
+        5: "option",
+        6: "period",
+        7: "after_hint",
+        8: "before_assistant",
+    }
     all_fold_results = collections.defaultdict(lambda: collections.defaultdict(list))
     # Structure: all_fold_results[layer_pos_key][metric_name] = [fold1_val, fold2_val, ...]
 
@@ -320,7 +332,7 @@ if __name__ == "__main__":
         k_folds=5, # Number of folds
         cv_split_seed=42, # Seed for the KFold split itself
         internal_val_frac=0.15, # Use 15% of train fold for validation
-        internal_split_seed=43, # Seed for the internal val split
+        internal_split_seed=42, # Seed for the internal val split
         # wandb_project="faithfulness_probes_cv", # WandB project name
         # wandb_entity="your_entity", # Your WandB entity
     )

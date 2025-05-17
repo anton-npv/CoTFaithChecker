@@ -88,8 +88,15 @@ def get_data_splits(
 
 # --- Plotting Configuration & Helpers (Adapted) ---
 
-POSITION_ORDER = ["assistant", "think", "hint"]
-POSITION_MAP = {0: "assistant", 1: "think", 2: "hint"}
+POSITION_ORDER = ["assistant", "think", "hint", "correct", "option", "after_hint"]
+POSITION_MAP = {
+    0: "assistant",
+    1: "think",
+    2: "hint",
+    3: "correct",
+    4: "option",
+    5: "after_hint",
+}
 
 def get_custom_scale_transform(
     max_value: float,
@@ -191,20 +198,35 @@ def plot_combined_fvu(
         yticks = np.arange(plot_min_fvu, plot_max_fvu + tick_step, tick_step)
         ax.set_yticks(yticks)
 
-    # Define colors/styles with better contrast and visibility
+    # Define colors and styles for all token positions
     colors = {
-        "assistant": "#45B8FE",  # Vibrant baby blue
-        "think": "#FF9966",      # Salmon/coral orange (like in violin plot)
-        "hint": "#1A7F64"        # Keep the same deep teal
+        "assistant": "#45B8FE",
+        "think": "#FF9966",
+        "hint": "#1A7F64",
+        "correct": "#1B9E77",
+        "option": "#7570B3",
+        "after_hint": "#66A61E",
     }
-    
-    # More distinctive line styles for better differentiation
-    linestyles = {"assistant": "-", "think": "--", "hint": "-."}
-    markers = {"assistant": "o", "think": "D", "hint": "s"}  # Changed think marker to diamond
-    linewidths = {"assistant": 3.0, "think": 2.5, "hint": 2.5}
-    markersize = {"assistant": 8, "think": 7, "hint": 7}  # Different sizes
+    linestyles = {
+        "assistant": "-",
+        "think": "--",
+        "hint": "-.",
+        "correct": "-",
+        "option": "--",
+        "after_hint": ":",
+    }
+    markers = {
+        "assistant": "o",
+        "think": "D",
+        "hint": "s",
+        "correct": "X",
+        "option": "v",
+        "after_hint": "h",
+    }
+    linewidths = {pos: 2.5 for pos in POSITION_ORDER}
+    markersize = {pos: 7 for pos in POSITION_ORDER}
     markeredgewidth = 1.5
-    markeredgecolor = {"assistant": "white", "think": "white", "hint": "white"}
+    markeredgecolor = {pos: "white" for pos in POSITION_ORDER}
 
     # Plot each position
     layers_plotted = set()

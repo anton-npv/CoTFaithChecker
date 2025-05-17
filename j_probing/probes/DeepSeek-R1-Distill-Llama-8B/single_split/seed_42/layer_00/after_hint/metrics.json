@@ -1,0 +1,6 @@
+{
+  "best_val_loss": 0.08734945952892303,
+  "steps_completed": 1850,
+  "test_loss": 0.08411969989538193,
+  "test_pearson_r": 0.6141472458839417
+}

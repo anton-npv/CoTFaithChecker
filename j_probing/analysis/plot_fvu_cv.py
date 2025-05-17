@@ -88,8 +88,15 @@ def get_data_splits(
 
 # --- Plotting Configuration & Helpers (Adapted) ---
 
-POSITION_ORDER = ["assistant", "think", "hint"]
-POSITION_MAP = {0: "assistant", 1: "think", 2: "hint"}
+POSITION_ORDER = ["assistant", "think", "hint", "correct", "option", "after_hint"]
+POSITION_MAP = {
+    0: "assistant",
+    1: "think",
+    2: "hint",
+    3: "correct",
+    4: "option",
+    5: "after_hint",
+}
 
 def get_custom_scale_transform(
     max_value: float,
@@ -193,14 +200,35 @@ def plot_combined_fvu_cv(
         ax.set_yticks(yticks)
     # --- End Y-axis Scaling ---
 
-    # Define colors/styles (same as before)
-    colors = {"assistant": "#45B8FE", "think": "#FF9966", "hint": "#1A7F64"}
-    linestyles = {"assistant": "-", "think": "--", "hint": "-."}
-    markers = {"assistant": "o", "think": "D", "hint": "s"}
-    linewidths = {"assistant": 3.0, "think": 2.5, "hint": 2.5}
-    markersize = {"assistant": 8, "think": 7, "hint": 7}
+    # Define colors and styles for selected token positions
+    colors = {
+        "assistant": "#45B8FE",
+        "think": "#FF9966",
+        "hint": "#1A7F64",
+        "correct": "#1B9E77",
+        "option": "#7570B3",
+        "after_hint": "#66A61E",
+    }
+    linestyles = {
+        "assistant": "-",
+        "think": "--",
+        "hint": "-.",
+        "correct": "-",
+        "option": "--",
+        "after_hint": ":",
+    }
+    markers = {
+        "assistant": "o",
+        "think": "D",
+        "hint": "s",
+        "correct": "X",
+        "option": "v",
+        "after_hint": "h",
+    }
+    linewidths = {pos: 2.5 for pos in POSITION_ORDER}
+    markersize = {pos: 7 for pos in POSITION_ORDER}
     markeredgewidth = 1.5
-    markeredgecolor = {"assistant": "white", "think": "white", "hint": "white"}
+    markeredgecolor = {pos: "white" for pos in POSITION_ORDER}
 
     layers_plotted = set()
     for pos_name in POSITION_ORDER:
@@ -228,7 +256,7 @@ def plot_combined_fvu_cv(
                 markersize=markersize.get(pos_name, 7),
                 markeredgewidth=markeredgewidth,
                 markeredgecolor=markeredgecolor.get(pos_name, "white"),
-                alpha=0.95,
+                alpha=0.95 if pos_name == "hint" else (0.9 if pos_name == "think" else 0.85),
                 zorder=3 if pos_name == "hint" else (2 if pos_name == "think" else 1)
             )
 
