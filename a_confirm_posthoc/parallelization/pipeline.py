@@ -9,20 +9,7 @@ from accelerate.utils import gather_object
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s')
 
-KNOWN_CHAT_TEMPLATES = {
-    "llama":  "<|begin_of_text|><|start_header_id|>user<|end_header_id|>\n{instruction}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n",
-    "llama3": "<|begin_of_text|><|start_header_id|>user<|end_header_id|>\n{instruction}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n",
-    "qwen":   "<|im_start|>user\n{instruction}<|im_end|>\n<|im_start|>assistant\n"
-}
 
-def get_chat_template(model_name: str) -> str:
-    name = model_name.lower()
-    if "llama" in name:
-        return KNOWN_CHAT_TEMPLATES["llama3"]
-    if "qwen" in name:
-        return KNOWN_CHAT_TEMPLATES["qwen"]
-    logging.warning(f"No specific chat template for {model_name}; using llama.")
-    return KNOWN_CHAT_TEMPLATES["llama"]
 
 # helpers
 def load_data(path: str) -> List[Dict]:
@@ -60,7 +47,6 @@ def generate_dataset_completions(
     if accelerator.is_main_process:
         logging.info(f"Running on {accelerator.num_processes} GPU(s)")
 
-    chat_template = get_chat_template(model_name)
 
     for hint_type in hint_types:
         logging.info(f"--- Processing hint type: {hint_type} ---")
@@ -84,7 +70,7 @@ def generate_dataset_completions(
         # build prompts
         prompts = []
         for entry in data:
-            prompt = construct_prompt(entry).rstrip() + "\n<think>"
+            prompt = construct_prompt(entry).rstrip()
             prompts.append({"question_id": entry["question_id"],
                             "prompt_text": prompt})
 

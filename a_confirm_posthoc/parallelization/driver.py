@@ -64,10 +64,10 @@ model, tokenizer, model_name, _ = load_model_and_tokenizer(model_path)
 model, tokenizer = accelerator.prepare(model, tokenizer)
 device = accelerator.device
 
-dataset_name = "mmlu_new"
+dataset_name = "mmlu_latest"
 #hint_types = ["none", "sycophancy", "unethical_information", "induced_urgency"]
 hint_types = ["sycophancy"]
-n_questions = 8960
+n_questions = 50
 
 print("generating completions at", datetime.now(ZoneInfo("Europe/London")).isoformat(timespec="seconds"))
 
@@ -79,8 +79,8 @@ generate_dataset_completions(
     device=device,
     dataset_name=dataset_name,
     hint_types=hint_types,
-    batch_size=50,          # per-GPU !
-    max_new_tokens=4096,
+    batch_size=25,          # per-GPU !
+    max_new_tokens=2048,
     n_questions=n_questions
 )
 print("verifying completions at", datetime.now(ZoneInfo("Europe/London")).isoformat(timespec="seconds"))

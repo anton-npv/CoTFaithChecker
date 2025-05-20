@@ -37,12 +37,6 @@ def load_model_and_tokenizer(model_path: str
     return model, tokenizer, model_path.split("/")[-1], device
 
 
-def tokenize_instructions(tokenizer, instructions, chat_template):
-    if "{instruction}" not in chat_template:
-        raise ValueError("Chat template must contain '{instruction}'.")
-    prompts = [chat_template.format(instruction=x) for x in instructions]
-    return tokenizer(prompts, padding=True, truncation=False,
-                     return_tensors="pt")
 
 class StopOnThinkEnd(StoppingCriteria):
     def __init__(self, tokenizer):
@@ -97,7 +91,7 @@ def generate_completion(
             outputs = gen_model.generate(
                 input_ids,
                 attention_mask=attention_mask,
-                stopping_criteria=StoppingCriteriaList([StopOnThinkEnd(tokenizer)]),
+                # stopping_criteria=StoppingCriteriaList([StopOnThinkEnd(tokenizer)]),
                 max_new_tokens=gen_max,
                 do_sample=False,
                 pad_token_id=tokenizer.eos_token_id
@@ -105,7 +99,7 @@ def generate_completion(
 
         #decoded = tokenizer.batch_decode(outputs, skip_special_tokens=False)
         decoded = tokenizer.batch_decode(outputs, skip_special_tokens=True)
-        decoded = [tokenizer.bos_token + output + tokenizer.eos_token for output in decoded]
+        decoded = [tokenizer.bos_token + output + (tokenizer.eos_token if "</think>" in output else "") for output in decoded]
         for qid, completion in zip(qids, decoded):
             results.append({"question_id": qid, "completion": completion})
 

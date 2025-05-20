@@ -162,4 +162,4 @@ if __name__ == "__main__":
     # output_directory = os.path.join("data", dataset_name)
     # format_data_with_hints(input_json_file, output_directory)
     # pass # Placeholder for actual execution logic
-    format_data_with_hints("mmlu_pro_math")
+    format_data_with_hints("mmlu_latest")

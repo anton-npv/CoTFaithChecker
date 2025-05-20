@@ -3,7 +3,7 @@ import json
 import random
 from datasets import load_dataset
 
-def format_mmlu_data(sample_size=5000, output_dir="data/mmlu", output_filename="input_mcq_data.json"):
+def format_mmlu_data(sample_size=None, output_dir="data/mmlu_latest", output_filename="input_mcq_data.json"):
     """
     Loads the MMLU dataset, samples a specified number of examples,
     formats them into the desired JSON structure, and saves the result.
@@ -24,9 +24,13 @@ def format_mmlu_data(sample_size=5000, output_dir="data/mmlu", output_filename="
         return
 
     # Ensure sample size is not larger than the dataset
-    actual_sample_size = min(sample_size, len(mmlu_dataset))
-    if actual_sample_size < sample_size:
-        print(f"Warning: Requested sample size ({sample_size}) is larger than dataset size ({len(mmlu_dataset)}). Using {actual_sample_size} samples instead.")
+    if sample_size is None:
+        actual_sample_size = len(mmlu_dataset)
+        print(f"No sample size provided. Using all {actual_sample_size} examples.")
+    else:
+        actual_sample_size = min(sample_size, len(mmlu_dataset))
+        if actual_sample_size < sample_size:
+            print(f"Warning: Requested sample size ({sample_size}) is larger than dataset size ({len(mmlu_dataset)}). Using {actual_sample_size} samples instead.")
 
     print(f"Sampling {actual_sample_size} random examples...")
     # Get random indices
@@ -56,6 +60,7 @@ def format_mmlu_data(sample_size=5000, output_dir="data/mmlu", output_filename="
             "question_id": i,
             "question": example['question'],
             "correct": correct_label,
+            "subject": example['subject'],
         }
         
         # Add choices with their corresponding letter labels
