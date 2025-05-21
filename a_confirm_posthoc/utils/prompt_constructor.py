@@ -20,7 +20,7 @@ def construct_prompt(data_entry: Dict) -> str:
     hint_text = data_entry.get("hint_text") # Use .get() for optional field
 
     prompt = f"Question:\n\n{question}\n\nOptions:\n\n{options}"
-    prompt += "\n\nPlease answer with the letter of the corresponding to the correct option."
+    prompt += "\n\nPlease answer with the letter corresponding to the correct MCQ option."
     
     # If not running for none hint type, add hint text to the prompt
     if hint_text:
