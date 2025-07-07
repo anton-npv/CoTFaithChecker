@@ -9,9 +9,12 @@ from typing import Dict, List
 import re
 
 
-def load_confession_data(dataset_name: str, model_name: str, hint_type: str, n_questions: int) -> List[Dict]:
+def load_confession_data(dataset_name: str, model_name: str, hint_type: str, n_questions: int, demo_mode: bool = False) -> List[Dict]:
     """Load confession test results"""
-    path = os.path.join("confession_test", "results", dataset_name, model_name, hint_type, f"confessions_with_{n_questions}.json")
+    if demo_mode:
+        path = os.path.join("confession_test", "results", dataset_name, model_name, hint_type, f"confessions_demo_{n_questions}.json")
+    else:
+        path = os.path.join("confession_test", "results", dataset_name, model_name, hint_type, f"confessions_with_{n_questions}.json")
     
     if not os.path.exists(path):
         print(f"Confession data not found: {path}")
@@ -123,11 +126,16 @@ def main():
     parser.add_argument("--model", default="DeepSeek-R1-Distill-Llama-8B", help="Model name")
     parser.add_argument("--hint_type", default="sycophancy", help="Hint type")
     parser.add_argument("--n_questions", type=int, default=8960, help="Number of questions")
+    parser.add_argument("--demo", action="store_true", help="Analyze demo results (smaller sample)")
     
     args = parser.parse_args()
     
+    # For demo mode, use demo sample size as n_questions
+    if args.demo:
+        args.n_questions = 10  # Default demo sample size
+    
     # Load confession data
-    confession_data = load_confession_data(args.dataset, args.model, args.hint_type, args.n_questions)
+    confession_data = load_confession_data(args.dataset, args.model, args.hint_type, args.n_questions, demo_mode=args.demo)
     
     if not confession_data:
         print("No confession data found!")
