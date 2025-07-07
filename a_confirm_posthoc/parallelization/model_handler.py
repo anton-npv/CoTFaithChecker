@@ -100,7 +100,8 @@ def generate_completion(
         #decoded = tokenizer.batch_decode(outputs, skip_special_tokens=False)
         decoded = tokenizer.batch_decode(outputs, skip_special_tokens=True)
         # Don't manually add BOS token - it's already included in the decoded output
-        decoded = [output + (tokenizer.eos_token if "</think>" in output else "") for output in decoded]
+        # Remove the ad-hoc EOS addition logic - let the model handle completion naturally
+        # decoded = [output + (tokenizer.eos_token if "</think>" in output else "") for output in decoded]
         for qid, completion in zip(qids, decoded):
             results.append({"question_id": qid, "completion": completion})
 
