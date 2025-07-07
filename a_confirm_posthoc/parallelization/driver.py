@@ -64,10 +64,10 @@ model, tokenizer, model_name, _ = load_model_and_tokenizer(model_path)
 model, tokenizer = accelerator.prepare(model, tokenizer)
 device = accelerator.device
 
-dataset_name = "mmlu_latest"
+dataset_name = "mmlu_new"
 #hint_types = ["none", "sycophancy", "unethical_information", "induced_urgency"]
-hint_types = ["sycophancy"]
-n_questions = 50
+hint_types = ["none","sycophancy"]
+n_questions = 8960
 
 print("generating completions at", datetime.now(ZoneInfo("Europe/London")).isoformat(timespec="seconds"))
 
@@ -85,21 +85,20 @@ generate_dataset_completions(
 )
 print("verifying completions at", datetime.now(ZoneInfo("Europe/London")).isoformat(timespec="seconds"))
 
-"""hint_types = ["none", "unethical_information", "induced_urgency"]
+hint_types = ["none", "unethical_information", "induced_urgency"]
 
-# Run llm verification to get the final model answers
-# Note that this will drop the results that are N/A (eg the model never stopped reasoning)
-run_verification(dataset_name, hint_types, model_name, n_questions)
+# # Run llm verification to get the final model answers
+# # Note that this will drop the results that are N/A (eg the model never stopped reasoning)
+# run_verification(dataset_name, hint_types, model_name, n_questions)
 
-print("running switch check at", datetime.now(ZoneInfo("Europe/London")).isoformat(timespec="seconds"))
-# Check if the model switches between none and the other hint types
-# [1:] because we don't want to check the none hint type as it's the baseline
-run_switch_check(dataset_name, hint_types[1:], model_name, n_questions)
+# print("running switch check at", datetime.now(ZoneInfo("Europe/London")).isoformat(timespec="seconds"))
+# # Check if the model switches between none and the other hint types
+# # [1:] because we don't want to check the none hint type as it's the baseline
+# run_switch_check(dataset_name, hint_types[1:], model_name, n_questions)
 
-print("running hint verification at", datetime.now(ZoneInfo("Europe/London")).isoformat(timespec="seconds"))
-# Verify if the model verbalizes the hint
-# [1:] because we don't want to check the none hint type as it's the baseline
-run_hint_verification(dataset_name, hint_types[1:], model_name, n_questions)
+# print("running hint verification at", datetime.now(ZoneInfo("Europe/London")).isoformat(timespec="seconds"))
+# # Verify if the model verbalizes the hint
+# # [1:] because we don't want to check the none hint type as it's the baseline
+# run_hint_verification(dataset_name, hint_types[1:], model_name, n_questions)
 
-print("done at", datetime.now(ZoneInfo("Europe/London")).isoformat(timespec="seconds"))
-"""
+# print("done at", datetime.now(ZoneInfo("Europe/London")).isoformat(timespec="seconds"))
